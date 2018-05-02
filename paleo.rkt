@@ -5,10 +5,10 @@
 ;     (H,p) ← Decide(P, G, Φ, Ω)
 ;     P ← Propagate(P, G, (H,p), Ω)
 ;     κ ← CheckConflict(P, Ψ, Φ)
-;     if κ =/= ∅ then
+;     if κ ≠ ∅ then
 ;        Ω ← Ω ∪ AnalyzeConflict(P, G, Ψ, κ)
 ;        P ← Backtrack(P, Ω)
-;     if UNSAT(AND[φ∈Ω] φ) then
+;     if UNSAT(∧_{φ∈Ω} φ) then
 ;        return ⊥
 ;     else if IsConcrete(P) then
 ;        return P
