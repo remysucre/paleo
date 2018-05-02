@@ -31,6 +31,32 @@
 ; a concise answer to the question what the function computes. Define a stub
 ; that lives up to the signature.
 
+; G: Standard grammar rules
+    ; V: Non-terminals
+    ; Sigma: terminals
+    ; R: production rules
+    ; S: start symbol
+; Psi: semantics - mapping from terminals to first-order formulae
+; Phi: specification - user defined smt formulae
+; Omega: knowledge base - set of SAT formulae
+; P: partial program - AST with holes, built from S via production rules
+; H: hole - unfilled piece of the partial program
+; p: candidate production - to fill in the hole
+; kappa: conflict
+
+;https://docs.racket-lang.org/htdp-langs/advanced.html?q=grammar#%28form._%28%28lib._lang%2Fhtdp-advanced..rkt%29._define-datatype%29%29
+
+(define V '(N T P A C CL F)) ; Set of rule names (e.g. {N T P A C CL F} in paper)
+(define sigma '(x -3 -2 -1 0 1 2 3 last head access ...)) ; Set of terminals (e.g. {x -3 -2 -1 0 1 2 3 last head access ...})
+(define R '((L, sort(L) reverse(L) filter(L T N) ...) ...)) ; List of tuples of names and arguments (e.g. {(L, sort(L) reverse(L) filter(L,T,N) ...) ...})
+(define S 'N) ; Specific rule: non-terminal name
+(struct Grammar (V sigma R S))
+(define Psi #hash((inc . (lambda (x y) (= y (+ x 1)))))) ; terminals -> formulae
+(define Phi (lambda (Lin Lout) (and (>= (len Lin) 1) (= (len Lout) 1)))) ; Look at bottom of paper
+
+(define Omega '((or (not c0...) (not c1...) ...) ...))
+
+(define (paleo G Psi Phi))
 
 ; Functional Examples
 ;
