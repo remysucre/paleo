@@ -47,6 +47,7 @@
 ; Psi: semantics - mapping from terminals to first-order formulae
 
 
+; TODO: Change to SMT2-LIB (Z3) code
  ; terminals -> formulae
 (define Psi #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                   (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
@@ -91,7 +92,53 @@
 ; a concise answer to the question what the function computes. Define a stub
 ; that lives up to the signature.
 
-(define (synth G Psi Phi) '())
+; TODO
+(define (Root S)
+  '())
+
+; TODO
+(define (Decide P gamma phi Omega)
+  '())
+
+; TODO
+(define (Propagate P gamma H p Omega)
+  '())
+
+; TODO
+(define (CheckConflict P1 Psi Phi)
+  '())
+
+; TODO
+(define (Unsat Omega)
+  '())
+
+; TODO
+(define (Backtrack P Omega)
+  '())
+
+; TODO
+(define (IsConcrete P)
+  '())
+
+;TODO
+(define (AnalyzeConflict P gamma Psi kappa)
+  '())
+
+(define (synth gamma Psi Phi)
+  (define P (Root S))
+  (define omega '())
+  (define (wtd P Omega)
+    (match-define (cons H pr) (Decide P gamma Phi omega))
+    (define P1 (Propagate P gamma H pr Omega))
+    (define kappa (CheckConflict P1 Psi Phi))
+    (let* ([Omega1 (if (not (null? kappa)) (append Omega (AnalyzeConflict P1 gamma Psi kappa)) Omega)]
+           [P2 (if (not (null? kappa)) (Backtrack P1 Omega1) P1)])
+      (cond
+        [(apply Unsat Omega1) #f]
+        [IsConcrete(P2) P2]
+        [else (wtd P2 Omega1)])))
+
+  (wtd P omega))
 
 ; Functional Examples
 ;
