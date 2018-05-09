@@ -1,4 +1,5 @@
 #lang racket
+(require rackunit)
 
 ; procedure Synthesize(G, Ψ, Φ)
 ;   P ← Root(S)
@@ -66,8 +67,8 @@
 (define P1 '(0 N head
                 (1 L take
                     ((3 L filter ((7 L x1)
-                                  (8 T)))
-                     (4 N)))))
+                                  (8 T HOLE)))
+                     (4 N HOLE)))))
 
 ; Omega: knowledge base - set of SAT formulae
 (define Omega '((disj (neg c 0 filter) (neg c 2 eqz))
@@ -92,35 +93,35 @@
 ; a concise answer to the question what the function computes. Define a stub
 ; that lives up to the signature.
 
-; TODO
 (define (Root S)
-  '())
+  (list 0 S 'HOLE))
 
-; TODO
+(check-equal? (Root S) '(0 N HOLE))
+
+; TODO long
 (define (Decide P gamma phi Omega)
-  '())
+  '(1 2))
 
-; TODO
+; TODO long
 (define (Propagate P gamma H p Omega)
   '())
 
-; TODO
+; TODO long
 (define (CheckConflict P1 Psi Phi)
   '())
 
-; TODO
+; TODO long
 (define (Unsat Omega)
   '())
 
-; TODO
+; TODO paper pseudocode missing decision level
 (define (Backtrack P Omega)
   '())
 
-; TODO
 (define (IsConcrete P)
-  '())
+  (not (member 'HOLE (flatten P))))
 
-;TODO
+;TODO long
 (define (AnalyzeConflict P gamma Psi kappa)
   '())
 
@@ -128,37 +129,18 @@
   (define P (Root S))
   (define omega '())
   (define (wtd P Omega)
-    (match-define (cons H pr) (Decide P gamma Phi omega))
+    (match-define (cons H pr) (Decide P gamma Phi Omega))
     (define P1 (Propagate P gamma H pr Omega))
     (define kappa (CheckConflict P1 Psi Phi))
-    (let* ([Omega1 (if (not (null? kappa)) (append Omega (AnalyzeConflict P1 gamma Psi kappa)) Omega)]
-           [P2 (if (not (null? kappa)) (Backtrack P1 Omega1) P1)])
+    (let* ([Omega1 (if (not (null? kappa))
+                       (append Omega (AnalyzeConflict P1 gamma Psi kappa))
+                       Omega)]
+           [P2 (if (not (null? kappa))
+                   (Backtrack P1 Omega1)
+                   P1)])
       (cond
-        [(apply Unsat Omega1) #f]
-        [IsConcrete(P2) P2]
+        [(Unsat Omega1) #f]
+        [(IsConcrete P2) P2]
         [else (wtd P2 Omega1)])))
 
   (wtd P omega))
-
-; Functional Examples
-;
-; Work through examples that illustrate the function’s purpose.
-
-
-; Function Template
-;
-; Translate the data definitions into an outline of the function.
-
-
-; Function Definition
-;
-; Fill in the gaps in the function template. Exploit the purpose statement and
-; the examples.
-
-
-; Testing
-;
-; Articulate the examples as tests and ensure that the function passes all.
-; Doing so discovers mistakes. Tests also supplement examples in that they help
-; others read and understand the definition when the need arises—and it will
-; arise for any serious program.
