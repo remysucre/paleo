@@ -1,5 +1,5 @@
 #lang racket
-(require rackunit)
+(require rackunit "conflict.rkt" "decide.rkt")
 
 ; procedure Synthesize(G, Ψ, Φ)
 ;   P ← Root(S)
@@ -98,32 +98,8 @@
 
 (check-equal? (Root S) '(0 N HOLE))
 
-; TODO long
-(define (Decide P gamma phi Omega)
-  '(1 2))
-
-; TODO long
-(define (Propagate P gamma H p Omega)
-  '())
-
-; TODO long
-(define (CheckConflict P1 Psi Phi)
-  '())
-
-; TODO long
-(define (Unsat Omega)
-  '())
-
-; TODO paper pseudocode missing decision level
-(define (Backtrack P Omega)
-  '())
-
 (define (IsConcrete P)
   (not (member 'HOLE (flatten P))))
-
-;TODO long
-(define (AnalyzeConflict P gamma Psi kappa)
-  '())
 
 (define (synth gamma Psi Phi)
   (define P (Root S))
