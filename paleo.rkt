@@ -101,22 +101,30 @@
 (define (IsConcrete P)
   (not (member 'HOLE (flatten P))))
 
+(define (undo P n) '())
+
+(define (sort P n) '())
+
 (define (synth gamma Psi Phi)
   (define P (Root S))
   (define omega '())
-  (define (wtd P Omega)
+  (define ds0 '())
+  (define level 1) ;; NOTE might be off by 1
+  (define (wtd P Omega l ds)
     (match-define (cons H pr) (Decide P gamma Phi Omega))
+    (define ds1 (cons (cons H l) ds)) ; NOTE H should be int
     (define P1 (Propagate P gamma H pr Omega))
     (define kappa (CheckConflict P1 Psi Phi))
-    (let* ([Omega1 (if (not (null? kappa))
-                       (append Omega (AnalyzeConflict P1 gamma Psi kappa))
+    (define (Backtrack P O) (undo P (cadr (sort ds1 O)))))
+    (let* ([OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
+           [Omega1 (if (not (null? kappa))
+                       (append Omega OmegaK)
                        Omega)]
            [P2 (if (not (null? kappa))
-                   (Backtrack P1 Omega1)
+                   (Backtrack P1 OmegaK)
                    P1)])
       (cond
         [(Unsat Omega1) #f]
         [(IsConcrete P2) P2]
-        [else (wtd P2 Omega1)])))
-
-  (wtd P omega))
+        [else (wtd P2 Omega1 (+ 1 l) ds1)])))
+  (wtd P omega l ds0))

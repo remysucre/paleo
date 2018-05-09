@@ -9,7 +9,3 @@
 ;TODO long
 (define (AnalyzeConflict P gamma Psi kappa)
   '())
-
-; TODO paper pseudocode missing decision level
-(define (Backtrack P Omega)
-  '())
