@@ -170,26 +170,40 @@
 ;; 
 
 (define (synth gamma Psi Phi)
-  (define P (Root S))
-  (define omega '())
-  (define ds0 '())
-  (define pps0 (list P))
-  (define level 1) ;; NOTE might be off by 1
+  ;; initialize variables
+  ;;
+  (define P0 (Root S)) ; inital partial program
+  (define omega0 '())  ; initial knowledge base
+  (define ds0 '())     ; initial decision history
+  (define pps0 (list P0)) ; initial partial program history
+  (define l0 1)        ; NOTE might be off by 1
+
+  ;; wtd takes partial prog, knowledge base, decision history, 
+  ;; partial program history
+  ;;
   (define (wtd P Omega l ds pps)
+    ; decide to fill hole H with production pr
     (match-define (cons H pr) (Decide P gamma Phi Omega))
-    (define ds1 (cons (cons l H) ds)) ; NOTE H should be int
-    (define P1 (Propagate P gamma H pr Omega))
+    ; propagate assignment and update partial program
+    (define P1 (Propagate P gamma H pr Omega)) ; TODO should also update decision history
+    ; update decision history and partial program history
+    (define ds1 (cons (cons l H) ds)) ; TODO should update with propagate restul NOTE H should be int
     (define pps1 (cons (cons l P1) pps))
+    ; check for conflict
     (define kappa (CheckConflict P1 Psi Phi))
-    (match-let* ([OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
-           [Omega1 (if (not (null? kappa))
-                       (append Omega OmegaK)
-                       Omega)]
-           [(list P2 ds2 pps2) (if (not (null? kappa))
-                                   (backtrack OmegaK ds pps)
-                                   (list P1 ds1 pps1))])
+    ; backtrack if there is conflict
+    (match-let* (; analyze conflict and return MUC
+                 [OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
+                 ; update knowledge base
+                 [Omega1 (if (not (null? kappa))
+                             (append Omega OmegaK)
+                             Omega)]
+                 ; update partial program and decision history
+                 [(list P2 ds2 pps2) (if (not (null? kappa))
+                                         (backtrack OmegaK ds pps)
+                                         (list P1 ds1 pps1))])
       (cond
         [(Unsat Omega1) #f]
         [(IsConcrete P2) P2]
-        [else (wtd P2 Omega1 (+ 1 l) ds1 pps1)])))
-  (wtd P omega level ds0 pps0))
+        [else (wtd P2 Omega1 (+ 1 l) ds2 pps2)])))
+  (wtd P0 omega0 l0 ds0 pps0))
