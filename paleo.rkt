@@ -103,7 +103,71 @@
 
 (define (undo P n) '())
 
-(define (sort P n) '())
+
+
+; (Backtrack ((disj (neg c 0 filter) (neg c 2 eqz)) (disj (neg c 0 filter) (neg c 2 leqz)))) (0 1) (2 2) (0 p0) (1 p1) (2 p2)
+; lookup 2 pps
+
+(define (lookup ds o) '())
+
+(define (find ds o) '())
+
+(define (d2l d) (dict-map d (lambda (x y) (cons x y))))
+
+(define (revert l xs) (make-immutable-hash (filter (lambda (x) (< (car x) l)) (d2l xs))))
+
+(revert 3 (list (cons 1 2) (cons 2 4) (cons 4 5)))
+
+; takes in a conflict, the decision history and the partial progam history
+; returns the partial program at the second highest decision level in the conflict
+; TODO this should also return the new pps and ds
+(define (backtrack omega ds pps)
+  (let* ([snd-l (cadadr (sort-with omega ds))]
+        [pp (dict-ref pps snd-l)]
+        [pps_ (revert snd-l pps)]
+        [ds_ (revert snd-l ds)])
+    (list pp pps_ ds_)))
+
+
+
+; backtrack finds the second highest decision level in the MUC omega according to ds
+; then returns the partial program at that level from pps
+; as well as reverting ds and pps to that level
+
+
+
+; a partial program
+
+(define pp-eg P1)
+
+; pairs of decision level and partial program
+
+(define pps-eg (list (cons 1 P1)))
+(define pps-eg2 '((1 P1)))
+
+; pairs of decision level and node id
+(define ds-eg #hash((1 . 2) (0 . 3) (7 . 1) (3 . 5)))
+(define ds-eg2 #hash((1 . 2)))
+
+; sort the conflict with decision level
+
+(define (sort-with omega ds)
+  (define (less x y) (< (dict-ref ds (cadr x)) (dict-ref ds (cadr y))))
+  (sort omega less))
+
+; unsat core with decision
+(define om-eg '(((leq y (max x1)) 0 'head)
+                ((leq ((max y) (max x1))) 1 'take)
+                ((leq (max y) (max x1)) 3 'filter)
+                ((= y x1) 7 'x1)))
+
+(backtrack om-eg ds-eg pps-eg)
+
+; (sort-with om-eg ds-eg)
+
+; (check-equal? (backtrack om-eg ds-eg pps-eg) (list ds-eg2 pps-eg2 pp-eg))
+
+;; 
 
 (define (synth gamma Psi Phi)
   (define P (Root S))
@@ -115,16 +179,16 @@
     (define ds1 (cons (cons H l) ds)) ; NOTE H should be int
     (define P1 (Propagate P gamma H pr Omega))
     (define kappa (CheckConflict P1 Psi Phi))
-    (define (Backtrack P O) (undo P (cadr (sort ds1 O)))))
+    (define (Backtrack O) (car (cadr (sort-with ds1 O)))) ; backtrack to second-highest level
     (let* ([OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
            [Omega1 (if (not (null? kappa))
                        (append Omega OmegaK)
                        Omega)]
            [P2 (if (not (null? kappa))
-                   (Backtrack P1 OmegaK)
+                   (Backtrack OmegaK)
                    P1)])
       (cond
         [(Unsat Omega1) #f]
         [(IsConcrete P2) P2]
         [else (wtd P2 Omega1 (+ 1 l) ds1)])))
-  (wtd P omega l ds0))
+  (wtd P omega level ds0))
