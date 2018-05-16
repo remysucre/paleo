@@ -173,22 +173,23 @@
   (define P (Root S))
   (define omega '())
   (define ds0 '())
+  (define pps0 (list P))
   (define level 1) ;; NOTE might be off by 1
-  (define (wtd P Omega l ds)
+  (define (wtd P Omega l ds pps)
     (match-define (cons H pr) (Decide P gamma Phi Omega))
-    (define ds1 (cons (cons H l) ds)) ; NOTE H should be int
+    (define ds1 (cons (cons l H) ds)) ; NOTE H should be int
     (define P1 (Propagate P gamma H pr Omega))
+    (define pps1 (cons (cons l P1) pps))
     (define kappa (CheckConflict P1 Psi Phi))
-    (define (Backtrack O) (car (cadr (sort-with ds1 O)))) ; backtrack to second-highest level
-    (let* ([OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
+    (match-let* ([OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
            [Omega1 (if (not (null? kappa))
                        (append Omega OmegaK)
                        Omega)]
-           [P2 (if (not (null? kappa))
-                   (Backtrack OmegaK)
-                   P1)])
+           [(list P2 ds2 pps2) (if (not (null? kappa))
+                                   (backtrack OmegaK ds pps)
+                                   (list P1 ds1 pps1))])
       (cond
         [(Unsat Omega1) #f]
         [(IsConcrete P2) P2]
-        [else (wtd P2 Omega1 (+ 1 l) ds1)])))
-  (wtd P omega level ds0))
+        [else (wtd P2 Omega1 (+ 1 l) ds1 pps1)])))
+  (wtd P omega level ds0 pps0))
