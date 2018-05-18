@@ -24,6 +24,8 @@
 
 ;https://docs.racket-lang.org/htdp-langs/advanced.html?q=grammar#%28form._%28%28lib._lang%2Fhtdp-advanced..rkt%29._define-datatype%29%29
 
+; TODO define macros for DSL, formula etc. 
+
 ; G: Standard grammar rules
 (struct Grammar (V sigma R S))
     ; V: Non-terminals
@@ -45,6 +47,8 @@
 ; last(L) | head(L) | sum(L) | maximum(L) | minimum(L) | take(L,N) | filter(L,T)| sort(L) | reverse(L) |  geqz | leqz | eqz
 ; Psi: semantics - mapping from terminals to first-order formulae
 
+
+; TODO: Change to SMT2-LIB (Z3) code
  ; terminals -> formulae
 (define Psi #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                   (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
@@ -97,41 +101,30 @@
 (define (IsConcrete P)
   (not (member 'HOLE (flatten P))))
 
-(define (synth gamma Psi Phi)
-  ;; initialize variables
-  ;;
-  (define P0 (Root S)) ; inital partial program
-  (define omega0 '())  ; initial knowledge base
-  (define ds0 '())     ; initial decision history
-  (define pps0 (list P0)) ; initial partial program history
-  (define l0 1)        ; NOTE might be off by 1
+(define (undo P n) '())
 
-  ;; wtd takes partial prog, knowledge base, decision history, 
-  ;; partial program history
-  ;;
-  (define (wtd P Omega l ds pps)
-    ; decide to fill hole H with production pr
+(define (sort P n) '())
+
+(define (synth gamma Psi Phi)
+  (define P (Root S))
+  (define omega '())
+  (define ds0 '())
+  (define level 1) ;; NOTE might be off by 1
+  (define (wtd P Omega l ds)
     (match-define (cons H pr) (Decide P gamma Phi Omega))
-    ; propagate assignment and update partial program
-    (define P1 (Propagate P gamma H pr Omega)) ; TODO should also update decision history
-    ; update decision history and partial program history
-    (define ds1 (cons (cons l H) ds)) ; TODO should update with propagate restul NOTE H should be int
-    (define pps1 (cons (cons l P1) pps))
-    ; check for conflict
+    (define ds1 (cons (cons H l) ds)) ; NOTE H should be int
+    (define P1 (Propagate P gamma H pr Omega))
     (define kappa (CheckConflict P1 Psi Phi))
-    ; backtrack if there is conflict
-    (match-let* (; analyze conflict and return MUC
-                 [OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
-                 ; update knowledge base
-                 [Omega1 (if (not (null? kappa))
-                             (append Omega OmegaK)
-                             Omega)]
-                 ; update partial program and decision history
-                 [(list P2 ds2 pps2) (if (not (null? kappa))
-                                         (backtrack OmegaK ds pps)
-                                         (list P1 ds1 pps1))])
+    (define (Backtrack P O) (undo P (cadr (sort ds1 O)))))
+    (let* ([OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
+           [Omega1 (if (not (null? kappa))
+                       (append Omega OmegaK)
+                       Omega)]
+           [P2 (if (not (null? kappa))
+                   (Backtrack P1 OmegaK)
+                   P1)])
       (cond
         [(Unsat Omega1) #f]
         [(IsConcrete P2) P2]
-        [else (wtd P2 Omega1 (+ 1 l) ds2 pps2)])))
-  (wtd P0 omega0 l0 ds0 pps0))
+        [else (wtd P2 Omega1 (+ 1 l) ds1)])))
+  (wtd P omega l ds0))
