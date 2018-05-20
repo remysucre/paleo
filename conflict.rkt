@@ -1,8 +1,8 @@
 #lang racket
 
-(provide (all-defined-out))
+(require rackunit "smt.rkt")
 
-; TODO long
+(provide (all-defined-out))
 
 ; procedure CheckConflict(P, Ψ, Φ)
 ;  ΦP ← InferSpec(P)
@@ -11,9 +11,54 @@
 ;  κ' ← {(φ',N, χN) | φ'= Rename(φ) ∧ (φ, N, χN) ∈ κ}
 ;  return k'
 
-(define (conj x y) '()) ; TODO 
-(define (InferSpec p) '()) ; TODO
-(define (SMTSolve f) '()) ; TODO
+(define (declare-v id) (string-append "(declare-const " "v" (number->string id) " (List Int))"))
+
+(define/match (declare-vs p)
+  [((list id A p)) (list (declare-v id))]
+  [((list id A p cs)) (flatten (cons (declare-v id) (map declare-vs cs)))])
+
+;(define/match (declare-vs p Psi)
+;  [(list id A p cs) (cons Psi-of p Psi)]
+;  [(list id A 'HOLE)])
+
+(define (v_s id) (string-append "v" (number->string id)))
+(define (sem p Psi) (dict-ref Psi p))
+
+(define Psi1 #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+                  (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
+                  (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
+                  (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
+                  (minimum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
+                  (take    . "Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
+                  (filter  . "Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
+                  (sort    . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
+                  (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
+
+(sem 'last Psi1)
+
+(define (C cs) (map (match-lambda [(list id A p) (v_s id)] [(list id A p _) (v_s id)]) cs))
+
+(C '((3 L filter ((7 L x1) (8 T HOLE))) (4 N HOLE)))
+
+(define (xs-of s) (set-intersect s '(Lin k Lin1 Lin2)))
+
+(xs-of '(Lout \. len = Lin \. len > 1 ∧ Lin \. max = Lout \. max ∧ Lin \. min = Lout \. min ∧ Lin \. first = Lout \. last ∧ Lin \. last = Lout \. first))
+
+(define/match (phi-p p)
+  [((list id R p cs)) (subst 'y (v_s R) (phi-n (list id R p cs)))]
+  [((list id R p)) (subst 'y (v_s R) (phi-n (list id R p)))])
+
+(define/match (psi-n p Psi)
+  [((list id A 'HOLE) Psi) '(true)]
+  [((list id A p) Psi) (subst (v_s id) 'y (sem p Psi))]
+  [((list id A p cs) Psi) (substs (C cs) (xs-of (sem p Psi)) (subst (v_s id) 'y (sem p Psi)))])
+
+(define/match (phi-n p Psi)
+  [((list id A p cs) Psi) (conj (cons (psi-n p Psi) (map (lambda (c) (phi-n c Psi)) cs)))])
+
+(define (InferSpec p)
+  (let ([vs (declare-vs p)]
+        [phi-ns (phi-p p)]) (append vs phi-ns)))
 (define (Node f) '()) ; TODO
 (define (Chi n) '()) ; TODO
 (define (Rename p) '()) ; TODO
@@ -36,9 +81,7 @@
   (foldr (lambda (ki phi) step phi ki) #f kappa))
 
 (define (Aof x) '()) ; TODO
-
 (define (Children x) '()) ; TODO
-
 (define (Of x) '()) ; TODO
 (define (sig-of x) '()) ; TODO
 (define (disj x) '()) ; TODO
@@ -46,10 +89,12 @@
 (define (assigned-to x) '()) ; TODO
 
 (define P1 '(0 N head
-                (1 L take
+                ((1 L take
                     ((3 L filter ((7 L x1)
                                   (8 T HOLE)))
-                     (4 N HOLE)))))
+                     (4 N HOLE))))))
+
+(declare-vs P1)
 
 ; (Backtrack ((disj (neg c 0 filter) (neg c 2 eqz)) (disj (neg c 0 filter) (neg c 2 leqz)))) (0 1) (2 2) (0 p0) (1 p1) (2 p2)
 ; lookup 2 pps
