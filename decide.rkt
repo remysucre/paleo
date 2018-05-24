@@ -8,8 +8,24 @@
   '(1 2))
 
 ; TODO probably pretty short enumeration over the tree
-(define (Consistent? P Omega)
-  #t)
+(define (Consistent? P omega rules)
+  (define prod->unique (Make-prod->unique rules))
+  (define num-prods (hash-count prod->unique))
+
+  (define pi
+    (for/list ([node P] #:when (Partial-Filled? node))
+      `(,(+ (Node->Unique num-prods node)
+           (Prod->Unique prod->unique (Partial-Terminal node))))))
+
+  (define conflicts
+    (for/list ([clause omega])
+      (for/list ([literal clause])
+        `,(-
+           (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
+              (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
+
+  (define solution (solve (append pi conflicts)))
+  solution)
 
 (define (L x)
   (cond
@@ -29,14 +45,17 @@
                 (for*/list ([(prod-non prod-terms) (in-dict rules)]
                            #:when (eq? hole-non prod-non)
                            [prod-term prod-terms])
-                  (list hole prod-term))))
+                  (cons hole prod-term))))
     (define V1 (for/list ([possibilities V])
                  (filter (lambda (x)
-                           (Consistent? (Fill P (car x) (cdr x)) Omega))
+                           (Consistent? (Fill P (car x) (cdr x)) Omega rules))
                          possibilities)))
     (for*/fold ([default #f]) ([possibilities V1] [candidate possibilities])
-      (match-define (list H p) candidate)
+      (match-define (cons H p) candidate)
       (if (> (L candidate) (L default)) candidate default)))
+
+;Test
+;(eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
 
 ; TODO long
 (define (Implied P H p omega rules)
@@ -85,9 +104,35 @@
         (Propagate P1 gamma hole prod Omega rules)
         default)))
 
-; Example:
+; Test
 ;(print-partial (Propagate P1 #f 5 0 (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
 
 ; TODO long
-(define (Unsat Omega)
-  #f)
+(define (Unsat P omega rules)
+  (define prod->unique (Make-prod->unique rules))
+  (define num-prods (hash-count prod->unique))
+
+  (define pi
+    (for/list ([node P] #:when (Partial-Filled? node))
+      `(,(+ (Node->Unique num-prods node)
+           (Prod->Unique prod->unique (Partial-Terminal node))))))
+
+  (define conflicts
+    (for/list ([clause omega])
+      (for/list ([literal clause])
+        `,(-
+           (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
+              (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
+  
+  (define possible
+    (for*/list ([node P] #:when (Hole? node) [(prod-non prod-terms) (in-dict rules)]
+                #:when (eq? (Partial-Non-Terminal node) prod-non))
+      (for/list ([prod-term prod-terms])
+        `,(+ (Node->Unique num-prods node)
+             (Prod->Unique prod->unique (Production-Terminal prod-term))))))
+
+  (define solution (solve (append pi conflicts possible)))
+  (not solution))
+
+; Test
+;(printf "~s/n" (Unsat P1 (list (list (cons 4 'geqz)) (list (cons 4 'leqz)) (list (cons 4 'eqz))) R))
