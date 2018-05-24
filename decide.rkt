@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (all-defined-out))
-(require "partial.rkt")
+(require "partial.rkt" "solver.rkt")
 
 ; TODO long
 #;(define (Decide P gamma phi Omega)
@@ -39,8 +39,36 @@
       (if (> (L candidate) (L default)) candidate default)))
 
 ; TODO long
-#;(define (Propagate P gamma H p Omega)
-  #f)
+(define (Implied P H p omega rules)
+  (define prod->unique (Make-prod->unique rules))
+  (define num-prods (hash-count prod->unique))
+
+  (define pi
+    (for/list ([node P] #:when (Partial-Filled? node))
+      `(,(+ (Node->Unique num-prods node)
+           (Prod->Unique prod->unique (Partial-Terminal node))))))
+
+  (define conflicts
+    (for/list ([clause omega])
+      (for/list ([literal clause])
+        `,(-
+           (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
+              (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
+
+  (define h-node (Lookup-By-ID P H))
+  
+  (define possible
+    (for/list ([(prod-non prod-terms) (in-dict rules)]
+                #:when (eq? (Partial-Non-Terminal h-node) prod-non))
+      (for/list ([prod-term prod-terms])
+        `,(+ (Node->Unique num-prods h-node)
+             (Prod->Unique prod->unique (Production-Terminal prod-term))))))
+
+  (define invert (list (- (+ (Node->Unique num-prods h-node)
+                             (Prod->Unique prod->unique (Production-Terminal p))))))
+
+  (define solution (solve (cons invert (append pi conflicts possible))))
+  (not solution))
 
 (define (Propagate P gamma H p Omega rules)
   (define P1 (Fill P H p))
@@ -53,13 +81,12 @@
   (for/fold ([default P1]) ([x S])
     (match-define (list hole prod) x)
     (define hole-non (Partial-Non-Terminal (Lookup-By-ID P hole)))
-    (define R (for*/list ([(prod-non prod-terms) (in-dict rules)]
-                            #:when (eq? hole-non prod-non)
-                            [prod-term prod-terms])
-                (list hole prod-term)))
-    (if (= H 5)
+    (if (Implied P hole prod Omega rules)
         (Propagate P1 gamma hole prod Omega rules)
         default)))
+
+; Example:
+;(print-partial (Propagate P1 #f 5 0 (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
 
 ; TODO long
 (define (Unsat Omega)

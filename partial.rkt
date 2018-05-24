@@ -78,6 +78,16 @@
   (print-tree root 1)
   (newline))
 
-#;(define (pi P rules)
-  (for/list ([node P])
-    `(=,(string->symbol (format "c~s-~s\n" ) ,(if ())))))
+(define (Make-prod->unique rules)
+  (define i 0)
+  (define prods->unique
+    (for*/hash ([(non-term terms) rules] [term terms])
+      (begin0
+        (values (list `,(Production-Terminal term)) i)
+        (set! i (+ i 1)))))
+  prods->unique)
+
+(define (Prod->Unique prod->unique prod)
+  (dict-ref prod->unique (list prod)))
+
+(define (Node->Unique num-prods node) (* (Partial-ID node) num-prods))
