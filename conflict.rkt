@@ -1,6 +1,6 @@
 #lang racket
 
-(require rackunit "smt.rkt")
+(require rackunit "smt.rkt" "partial.rkt")
 
 (provide (all-defined-out))
 
@@ -24,7 +24,7 @@
 (define (v_s id) (string-append "v" (number->string id)))
 (define (sem p Psi) (dict-ref Psi p))
 
-(define Psi1 #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+(define Psi1 #hash((last   . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                   (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
                   (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
                   (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
@@ -59,12 +59,12 @@
 (define (InferSpec p)
   (let ([vs (declare-vs p)]
         [phi-ns (phi-p p)]) (append vs phi-ns)))
-(define (Node f) '()) ; TODO
-(define (Chi n) '()) ; TODO
-(define (Rename p) '()) ; TODO
+
+
 
 ; returns the MUC of a conflict
 (define (CheckConflict P Psi Phi)
+  (define (Chi n) (Partial-Terminal (Lookup-By-ID P n)))
   (let* ([Psi-P (InferSpec P)]
          [psi (SMTSolve (conj Psi-P Psi))]
          [k (map (lambda (phi) (list phi (Node phi) (Chi (Node phi)))) psi)]
@@ -80,7 +80,7 @@
                 (disj ph (foldr conj #t (map (lambda (x) (neg (assigned-to N x))) sig))))]))
   (foldr (lambda (ki phi) step phi ki) #f kappa))
 
-(define (Aof x) '()) ; TODO
+(define (Aof x) '()) ; 
 (define (Children x) '()) ; TODO
 (define (Of x) '()) ; TODO
 (define (sig-of x) '()) ; TODO
