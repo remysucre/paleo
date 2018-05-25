@@ -53,7 +53,15 @@
 
 (get-vn '(v3 x v5))
 
+
+(define (make-x i) (string->symbol (string-append "x" (number->string i))))
+
+(define (deep-map f xs) (map (lambda (x) (if (list? x) (deep-map f x) (f x))) xs))
+
+(deep-map (lambda (x) (+ x 1)) (list 1 1 (list 1 (list 1 1) 1) 1 1 (list (list 1 1) 1)))
+
 (define (Rename p)
-  (define (rn x) '()) ; TODO
-  (let ((vmax (argmax get-i (filter (lambda (x) (string-prefix? (symbol->string x) "v")) p))))
-    (map rn p)))
+  (let ((vs (sort (filter (lambda (x) (string-prefix? (symbol->string x) "v")) (flatten p)) #:key get-i <)))
+    (define (rn x) (if (member x vs) (if (= (index-of vs x) 0) 'y (make-x (index-of vs x))) x))
+    (deep-map rn p)))
+(Rename '(leq (max v1) (max v3)))
