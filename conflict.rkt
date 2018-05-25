@@ -72,13 +72,42 @@
     k_))
 
 ; learn lemmas from the MUC of a conflict
-(define (AnalyzeConflict P gamma Psi kappa)
+#;(define (AnalyzeConflict P gamma Psi kappa)
   (define (step phi x)
     (match x [(list ph N X)
               (match-let* ([As (map (lambda (Ni) (Aof Ni)) (Children N))]
                            [sig (filter (lambda (x) (implies (Of Psi x) ph)) (sig-of As))])
                 (disj ph (foldr conj #t (map (lambda (x) (neg (assigned-to N x))) sig))))]))
   (foldr (lambda (ki phi) step phi ki) #f kappa))
+
+(define R1 (make-immutable-hash
+           (list (cons 'N (append `,(range 0 11) '(x1 x2 x3 x4 x5) '((last L) (head L) (sum L) (maximum L) (minimum L))))
+             (cons 'L (list '(take L N) '(filter L T) '(sort L) '(reverse L)))
+             (cons 'T '(geqz leqz eqz)))))
+
+(define Psi #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+                  (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
+                  (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
+                  (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
+                  (minimum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
+                  (take    . "Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
+                  (filter  . "Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
+                  (sort    . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
+                  (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
+
+(define (AnalyzeConflict P gamma Psi kappa)
+    (for/fold ([sphi '()]) ([clause kappa])
+      (match-define (list phi node prod) clause)
+      (define As (map Partial-Non-Terminal (Partial-Children (Lookup-By-ID P node))))
+      ;(define rules (caddr gamma))
+      (define rules gamma)
+      (define sigma (for*/list ([(prod-non prod-terms) (in-dict rules)]
+                                #:when (ormap (lambda (x) (eq? x prod-non)) As)
+                                [prod-term prod-terms]
+                                #:when (list? prod-term)
+                                #:when (null? (SMTSolve `(=> ,(dict-ref Psi (Production-Terminal prod-term)) ,phi))))
+                      prod-term))
+      (append sphi sigma)))
 
 (define (Aof x) '()) ; 
 (define (Children x) '()) ; TODO
@@ -88,15 +117,15 @@
 (define (neg x) '()) ; TODO
 (define (assigned-to x) '()) ; TODO
 
-(define P1 '(0 N head
+(define P2 '(0 N head
                 ((1 L take
                     ((3 L filter ((7 L x1)
                                   (8 T HOLE)))
                      (4 N HOLE))))))
 
-(declare-vs P1)
+(declare-vs P2)
 
-; (Backtrack ((disj (neg c 0 filter) (neg c 2 eqz)) (disj (neg c 0 filter) (neg c 2 leqz)))) (0 1) (2 2) (0 p0) (1 p1) (2 p2)
+; (Backtrack ((disj (neg c 0 filter) (neg c 2 eqz)) (disj (neg c 0 filter) (neg c 2 leqz)))) (0 1) (2 2) (0 p0) (1 P2) (2 p2)
 ; lookup 2 pps
 
 (define (d2l d) (dict-map d (lambda (x y) (cons x y))))
@@ -122,7 +151,7 @@
 
 ; pairs of decision level and partial program
 
-(define pps-eg (list (cons 1 P1)))
+(define pps-eg (list (cons 1 P2)))
 
 ; pairs of decision level and node id
 (define ds-eg #hash((1 . 2) (0 . 3) (7 . 1) (3 . 5)))
