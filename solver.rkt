@@ -1,87 +1,62 @@
 #lang racket
 
-(require racket/runtime-path racket/path)
+(require racket/runtime-path racket/path (only-in "bv.rkt" finitize))
 
-(provide 
- cnf/c           ; contract? that recognizes CNF specifications
- interpretation? ; contract? that recognizes CNF interpretations
- solver?         ; contract? that recognizes solver (descriptions)
- solve           ; (->* (cnf/c) [solver?] (or/c #f interpretation?))
- glucose         ; (->* () [path-string?] solver?)
- lingeling       ; (->* () [path-string?] solver?)
-)
+(provide solve z3)
 
-; We represent a CNF formula as a list of clauses, where each clause is itself 
-; a list of non-zero integers.  Positive integers represent positive literals 
-; (i.e., positive occurrences of the ith variable), and negative integers 
-; represent negative literals.
-(define cnf/c (listof (listof integer?)))
-
-; An interpretation is represented as a list of literals, sorted in the 
-; increasing order of variable identifiers.  
-(define interpretation? (listof integer?))
-
-; A solver description contains the path to a solver executable
-; and any options to be passed to the solver.
-(struct solver (path options) #:transparent)
-
-; We assume that the solvers are in the bin/ folder.
+; We assume that the solvers is in the bin folder.
 (define-runtime-path bin (build-path "bin"))
 
-; Returns a solver description for the Glucose SAT solver.
-(define (glucose [path (build-path bin "glucose")])
-  (solver path '("-model" "-verb=0")))
+(define z3 (make-parameter (build-path bin "z3")))
 
-; Returns a solver description for the Lingeling SAT solver.
-(define (lingeling [path (build-path bin "lingeling")])
-  (solver path '("-q")))
-
-; Invokes a SAT solver on the given CNF and returns either an interpretation?, 
-; if the formula is satisfiable, or #f otherwise.  The lingeling solver is the 
-; default value for the solver arugment.
-(define (solve cnf [solver (lingeling)])
-  (unless (file-exists? (solver-path solver))
-    (error 'solve "error: the solver `~a` does not exist. did you install it?" (solver-path solver)))
-  (define-values (process out in err)
-    (apply subprocess #f #f #f (solver-path solver) (solver-options solver)))
+; Invokes Z3 on the given QF_BV formula, represented as a list 
+; of symbols (see examples.rkt). It returns #f if the formula 
+; is unsatisfiable or a map from constant names to values if the 
+; formula is satisfiable.
+(define (solve encoding)
+  (unless (file-exists? (z3))
+    (error 'solve "could not locate z3: ~v does not exist" (z3)))
+  (define-values (process out in err) 
+    (subprocess #f #f #f (z3) "-smt2" "-in"))
   (with-handlers ([exn:break? (lambda (e) 
                                 (subprocess-kill process #t)
-                                (raise e))])
-    (write-cnf cnf in)
+                                (error 'solve "user break"))])
+    (write-encoding encoding in)
+    ; uncomment this to see what is being sent to the solver
+    ;(write-encoding encoding (current-output-port))
     (define sol (read-solution out))
     (subprocess-kill process #t)
-    (close-input-port out)
-    (close-input-port err)
-    (if (list? sol) (sort sol < #:key abs) sol)))
-  
-(define (write-cnf cnf [port (current-output-port)])
-  (define vars (abs (argmax abs (map (curry argmax abs) cnf))))
-  (define clauses (length cnf))
-  (fprintf port "p cnf ~a ~a\n" vars clauses)
-  (for ([clause cnf])
-    (for ([lit clause])
-      (fprintf port "~a " lit))
-    (fprintf port "0\n"))
-  (flush-output port)
-  (close-output-port port))
-    
-(define (read-solution port)
-  (let outer ([line (read-line port 'any)])
-    (pretty-print line)
-    (match line
-      [(? eof-object?)
-       (error 'read-solution "expected a line starting with s and ending with SATISFIABLE or UNSATISFIABLE")]
-      [(regexp #px"^\\s*s\\s+UNSATISFIABLE\\s*$") #f]
-      [(regexp #px"^\\s*s\\s+SATISFIABLE\\s*$")
-       (let inner ([line (read-line port 'any)])
-         (match line
-           [(? eof-object?) (error 'read-solution "expected a line starting with v and ending with 0")]
-           [(regexp #px"^\\s*v\\s+(.+)$" (list _ (app string->literals lits)))
-            (if (= 0 (last lits))
-                (drop-right lits 1)
-                (append lits (inner (read-line port 'any))))]
-           [_ (inner (read-line port 'any))]))]
-      [_ (outer (read-line port 'any))])))
+    sol))
 
-(define (string->literals str)
-  (map string->number (string-split str #:trim? #t)))
+; Writes the given encoding to the specified port.
+(define (write-encoding encoding port)
+  (fprintf port "(set-logic QF_BV)\n")
+  (for ([expr encoding])
+    (fprintf port "~a\n" expr))
+  (fprintf port "(check-sat)\n")
+  (fprintf port "(get-model)\n")
+  (flush-output port))
+
+; Reads the SMT solution from the given input port.
+; The solution consist of 'sat or 'unsat, followed by  
+; followed by a suitably formatted s-expression.  The 
+; output of this procedure is a hashtable from constant 
+; identifiers to their values (if the solution is 'sat);
+; a non-empty list of assertion identifiers that form an
+; unsatisfiable core (if the solution is 'unsat and a 
+; core was extracted); or #f (if the solution is 
+; 'unsat and no core was extracted).
+(define (read-solution port)
+  (match (read port)
+    [(== 'sat) 
+     (match (read port)
+       [(list (== 'model) (list (== 'define-fun) const _ _ val) ...)
+        (for/hash ([c const] [v val]) 
+          (values c 
+                  (match v
+                    [(== 'true) #t]
+                    [(== 'false) #f]
+                    [(? number?) (finitize v)])))]
+       [other (error 'solution "expected model, given ~a" other)])]
+    [(== 'unsat) (read port) #f] 
+    [other (error 'smt-solution "unrecognized solver output: ~a" other)]))
