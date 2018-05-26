@@ -46,19 +46,42 @@
         (Partial id type terminal filled? '())))
   (define parsed (assign-id (parse-node P) 0))
   (define typed (type-check parsed start))
-  (print-partial (Make-Partial-Tree typed))
+  (print-partial typed)
   typed)
 
-(define (parse-spec rules terminal spec)
+(define (parse-spec terminal args out spec)
+  (when (check-duplicates args #:default #f)
+    (error "Duplicate argument names in spec for terminal:" terminal))
+
+  (define numargs 0)
+  (define renamed
+    (for/hash ([var args])
+      (begin0
+        (values var (string->symbol (format "x~s" numargs)))
+        (set! numargs (+ numargs 1)))))
+
+  (when (hash-has-key? renamed out)
+    (error "Output name is the same as an argument name in spec for terminal:" terminal))
+
+  (define (rename var)
+    (if (eq? var out)
+        'y
+        (dict-ref renamed var var)))
+  
   (define (parse-expr e)
-    (eprintf "~s\n" e)
     (match e
-      [`(,x . ,y) (eprintf "~s ~s\n" x y)]
-      [`(,x) (eprintf "~s\n" x)])
-    #f)
+      [(? number?) e]
+      [(? symbol?)
+       (define split (regexp-split #rx"\\." (symbol->string e)))
+       (if (= (length split) 1)
+           (list 'head (rename (string->symbol (car split))))
+           (map (lambda (x) (rename (string->symbol x))) (reverse split)))]
+      [_ #f]))
+  
   (define (parse-rule e)
     (match e
-      [`(,lhs ,op ,rhs) (eprintf "Op: ~s\n" op) (parse-expr `(,lhs)) (parse-expr `(,rhs))]))
+      [`(,lhs ,op ,rhs) (eprintf "Op: ~s\n" (list op (parse-expr lhs) (parse-expr rhs)))
+                        (list op (parse-expr lhs) (parse-expr rhs))]))
   (for ([rule spec]) (parse-rule rule))
   #f)
  
@@ -79,10 +102,13 @@
          (define term (Production-Terminal prod))
          (dict-set! prods term (cons N (dict-ref prods term '())))
          (dict-set! prod-children term (Production-Children prod)))]
-      [`(Spec ,terminal ,semantics)
-       (unless (hash-has-key? prods terminal)
-         (error "Spec for unknown terminal:" terminal))
-       (dict-set! spec terminal (parse-spec rules terminal semantics))]
+      [`(Spec ,prod ,semantics)
+       (match prod
+         [`(,terminal ,args ,out)
+          (unless (hash-has-key? prods terminal)
+            (error "Spec for unknown terminal:" terminal))
+          (parse-spec terminal args out semantics)]
+         [_ #f])]
       [`(Partial ,P)
        (set! partials (cons partials (parse-partial P prods prod-children start)))]))
   (unless start (error "No terminals provided for language")))
