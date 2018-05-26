@@ -6,7 +6,7 @@
 
 (Partial (head (take (filter (x1) (??)) (??))))
 
-(Spec take
+(Spec (take [Lin k] Lout)
       ([Lout.len < Lin.len]
        [Lin.max ≥ Lout.max]
        [Lin.min ≤ Lout.min]
