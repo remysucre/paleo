@@ -14,8 +14,6 @@
        append
        (for/list ([child (Partial-Children P)]) (Partial->List child)))))
     (in-list (Partial->List P))))
-(define-struct/contract Partial-Tree ([Root Partial?] [NextID integer?])
-  #:property prop:sequence (lambda (P) (Partial-Tree-Root P)))
 
 (define (Production-Children p)
   (match p
@@ -30,10 +28,6 @@
 (define (Partial-Size P)
     (sequence-count identity P))
 
-(define/contract (Make-Partial-Tree root)
-  (-> Partial? Partial-Tree?)
-  (Partial-Tree root (Partial-Size root)))
-
 (define (Hole? P) (not (Partial-Filled? P)))
 (define (Holes P) (for/list ([node P] #:when (Hole? node)) (Partial-ID node)))
 
@@ -41,7 +35,7 @@
   (for/or ([node P] #:when (eq? (Partial-ID node) H)) node))
 
 (define (Fill P H p)
-  (define next (Partial-Tree-NextID P))
+  (define next (Partial-Size P))
   (define (Search P)
     (if (= (Partial-ID P) H)
         (Partial (Partial-ID P) (Partial-Non-Terminal P) (Production-Terminal p) #t
@@ -50,24 +44,22 @@
         (Partial (Partial-ID P) (Partial-Non-Terminal P) (Partial-Terminal P) (Partial-Filled? P)
                  (for/list ([child (Partial-Children P)])
                    (Search child)))))
-  (Make-Partial-Tree (Search (Partial-Tree-Root P))))
+  (Search P))
 
-(define P1 (Make-Partial-Tree
-            (Partial 0 'N 'head #t
-                     (list
-                      (Partial 1 'L 'take #t
-                               (list
-                                (Partial 2 'L 'filter #t
-                                         (list
-                                          (Partial 3 'L 'x1 #t '())
-                                          (Partial 4 'T 'HOLE #f '())))
-                                (Partial 5 'N 'HOLE #f '())))))))
+(define P1 (Partial 0 'N 'head #t
+                    (list
+                     (Partial 1 'L 'take #t
+                              (list
+                               (Partial 2 'L 'filter #t
+                                        (list
+                                         (Partial 3 'L 'x1 #t '())
+                                         (Partial 4 'T 'HOLE #f '())))
+                               (Partial 5 'N 'HOLE #f '()))))))
 
 (define (print-node P)
     (printf "~s: ~s, ~s, ~s\n" (Partial-ID P) (Partial-Non-Terminal P) (Partial-Terminal P) (Partial-Filled? P)))
 
 (define (print-partial P)
-  (define root (Partial-Tree-Root P))
   (printf "Partial-Tree: \n")
   (define (print-tree P level)
     (for ([i (in-range 0 level)])
@@ -75,7 +67,7 @@
     (print-node P)
     (for ([child (Partial-Children P)])
       (print-tree child (+ level 1))))
-  (print-tree root 1)
+  (print-tree P 1)
   (newline))
 
 (define (Make-prod->unique rules)
