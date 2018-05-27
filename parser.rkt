@@ -55,9 +55,8 @@
   (define numargs 0)
   (define renamed
     (for/hash ([var args])
-      (begin0
-        (values var (string->symbol (format "x~s" numargs)))
-        (set! numargs (+ numargs 1)))))
+      (set! numargs (+ numargs 1))
+      (values var (string->symbol (format "x~s" numargs)))))
 
   (when (hash-has-key? renamed out)
     (error "Output name is the same as an argument name in spec for terminal:" terminal))
@@ -132,4 +131,5 @@
   (with-syntax ([parsed (parse in)])
     (strip-context
      #'(module anything racket
-         (define prog 'parsed)))))
+         (define prog 'parsed)
+         (define spec (third 'parsed))))))

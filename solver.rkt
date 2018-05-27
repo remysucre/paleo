@@ -23,7 +23,7 @@
                                 (error 'solve "user break"))])
     (write-encoding encoding in)
     ; uncomment this to see what is being sent to the solver
-    ;(write-encoding encoding (current-output-port))
+    (write-encoding encoding (current-output-port))
     (define sol (read-solution out))
     (subprocess-kill process #t)
     sol))

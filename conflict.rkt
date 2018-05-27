@@ -26,7 +26,7 @@
 (define (v_s id) (string->symbol (string-append "v" (number->string id))))
 (define (sem p Psi) (dict-ref Psi p))
 
-(define Psi0 #hash((last    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+#;(define Psi0 #hash((last    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                    (head    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
                    (sum     . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1")
                    (maximum . (and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
@@ -36,7 +36,7 @@
                    (sort    . (and (= x1 x1) (= y y)));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
                    (reverse . (and (= x1 x1) (= y y)))));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
 
-(define Psi1 #hash((last   . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+#;p(define Psi1 #hash((last   . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                   (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
                   (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
                   (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
@@ -45,6 +45,16 @@
                   (filter  . "Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
                   (sort    . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
                   (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
+
+(define Psi0 #hash((filter . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
+                  (minimum . ((> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
+                  (maximum . ((> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
+                  (last . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
+                  (head . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
+                  (sum . ((>= (len x1) 1) (= (len y) 1)))
+                  (take . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
+                  (reverse . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
+                  (sort . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
 
 (sem 'last Psi0)
 
@@ -102,29 +112,33 @@
              (cons 'L (list '(take L N) '(filter L T) '(sort L) '(reverse L)))
              (cons 'T '(geqz leqz eqz)))))
 
-(define Psi #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
-                  (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
-                  (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
-                  (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
-                  (minimum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
-                  (take    . "Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
-                  (filter  . "Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
-                  (sort    . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
-                  (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
-
+(define Psi #hash((filter . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
+                  (minimum . ((> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
+                  (maximum . ((> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
+                  (last . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
+                  (head . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
+                  (sum . ((>= (len x1) 1) (= (len y) 1)))
+                  (take . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
+                  (reverse . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
+                  (sort . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
+  
 (define (AnalyzeConflict P gamma Psi kappa)
     (for/fold ([sphi '()]) ([clause kappa])
       (match-define (list phi node prod) clause)
-      (define As (map Partial-Non-Terminal (Partial-Children (Lookup-By-ID P node))))
+      (define As (Partial-Children (Lookup-By-ID P node)))
       ;(define rules (caddr gamma))
       (define rules gamma)
-      (define sigma (for*/list ([(prod-non prod-terms) (in-dict rules)]
-                                #:when (ormap (lambda (x) (eq? x prod-non)) As)
-                                [prod-term prod-terms]
-                                #:when (list? prod-term)
-                                #:when (null? (SMTSolve `(=> ,(dict-ref Psi (Production-Terminal prod-term)) ,phi))))
-                      prod-term))
+      (define sigma (for*/list ([node As]
+                                [prod (dict-ref rules (Partial-Non-Terminal node))]
+                                #:when (list? prod)
+                                #:when (not (SMTSolve `((assert
+                                                    (and ,@(dict-ref Psi (Production-Terminal prod))
+                                                         (not ,phi)))))))
+                      (list (Partial-ID node) (Production-Terminal prod))))
       (append sphi sigma)))
+
+;Test
+#;(AnalyzeConflict P1 R1 Psi '(((= (len y) 1) 1 maximum)))
 
 (define (Aof x) '()) ; 
 (define (Children x) '()) ; TODO

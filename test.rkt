@@ -11,34 +11,34 @@
 (Synthesize test [in out] p1)
 
 (Spec (last [Lin] Lout)
-      ([Lin.len ≥ 1] [Lout.len = 1]
-       [Lin.max ≥ Lout.max] [Lin.min ≤ Lout.min]
+      ([Lin.len >= 1] [Lout.len = 1]
+       [Lin.max >= Lout.max] [Lin.min <= Lout.min]
        [Lout.first = Lin.last] [Lout.last = Lin.last]))
 
 (Spec (head [Lin] Lout)
-      ([Lin.len ≥ 1] [Lout.len = 1]
-       [Lin.max ≥ Lout.max] [Lin.min ≤ Lout.min]
+      ([Lin.len >= 1] [Lout.len = 1]
+       [Lin.max >= Lout.max] [Lin.min <= Lout.min]
        [Lout.first = Lin.first] [Lout.last = Lin.first]))
 
 (Spec (sum [Lin] Lout)
-      ([Lin.len ≥ 1] [Lout.len = 1]))
+      ([Lin.len >= 1] [Lout.len = 1]))
 
 (Spec (maximum [Lin] Lout)
       ([Lin.len > 1] [Lout.len = 1]
-       [Lin.max = Lout.max] [Lin.min ≤ Lout.min]))
+       [Lin.max = Lout.max] [Lin.min <= Lout.min]))
 
 (Spec (minimum [Lin] Lout)
       ([Lin.len > 1] [Lout.len = 1]
-       [Lin.max ≥ Lout.max] [Lin.min = Lout.min]))
+       [Lin.max >= Lout.max] [Lin.min = Lout.min]))
 
 (Spec (take [Lin k] Lout)
-      ([Lout.len < Lin.len] [Lin.max ≥ Lout.max]
-       [Lin.min ≤ Lout.min] [k > 0]
+      ([Lout.len < Lin.len] [Lin.max >= Lout.max]
+       [Lin.min <= Lout.min] [k > 0]
        [Lin.len > k] [Lin.first = Lout.first]))
 
 (Spec (filter [Lin t] Lout)
-      ([Lout.len < Lin.len] [Lin.max ≥ Lout.max]
-       [Lin.min ≤ Lout.min]))
+      ([Lout.len < Lin.len] [Lin.max >= Lout.max]
+       [Lin.min <= Lout.min]))
 
 (Spec (sort [Lin] Lout)
       ([Lout.len = Lin.len] [Lin.len > 1]
