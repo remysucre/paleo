@@ -31,7 +31,8 @@
 
 (define (conj x y) (list 'and x y))
 
-(define (SMTSolve f) (print f)(solve f))
+(define (SMTSolve f)
+  (let ([ans (solve f)]) (print ans) ans))
 
 (define (subst x y zs)
   (define (f z) (if (list? z) (subst x y z) (if (equal? z x) y z)))

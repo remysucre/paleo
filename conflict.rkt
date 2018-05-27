@@ -26,15 +26,15 @@
 (define (v_s id) (string->symbol (string-append "v" (number->string id))))
 (define (sem p Psi) (dict-ref Psi p))
 
-(define Psi0 #hash((last    . '(and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
-                   (head    . '(and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
-                   (sum     . '(and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1")
-                   (maximum . '(and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
-                   (minimum . '(and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
-                   (take    . '(and (= x1 x1) (and (= y y) (= x2 x2))));"Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
-                   (filter  . '(and (= x1 x1) (and (= y y) (= x2 x2))));"Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
-                   (sort    . '(and (= x1 x1) (= y y)));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
-                   (reverse . '(and (= x1 x1) (= y y)))));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
+(define Psi0 #hash((last    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+                   (head    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
+                   (sum     . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1")
+                   (maximum . (and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
+                   (minimum . (and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
+                   (take    . (and (= x1 x1) (and (= y y) (= x2 x2))));"Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
+                   (filter  . (and (= x1 x1) (and (= y y) (= x2 x2))));"Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
+                   (sort    . (and (= x1 x1) (= y y)));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
+                   (reverse . (and (= x1 x1) (= y y)))));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
 
 (define Psi1 #hash((last   . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                   (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
@@ -50,27 +50,27 @@
 
 (define (C cs) (map (lambda (n) (v_s (Partial-ID n))) cs))
 
-(C (list P1 P1))
+
 
 (define (xs-of s) (set-intersect (flatten s) '(x1 x2))) ; do this properly
 
 (xs-of '(Lout \. len = Lin \. len > 1 ∧ Lin \. max = Lout \. max ∧ Lin \. min = Lout \. min ∧ Lin \. first = Lout \. last ∧ Lin \. last = Lout \. first))
 
-(define (phi-p p Psi) (subst 'y (v_s (Partial-ID p)) (phi-n p Psi)))
+(define (phi-p p Psi) (list 'assert (subst 'y (v_s (Partial-ID p)) (phi-n p Psi))))
 
 (define (psi-n p Psi)
   (if (not (Partial-Filled? p))
       'true
       (if (null? (Partial-Children p))
           'true ; TODO careful (subst (v_s (Partial-ID p)) 'y (sem (Partial-Terminal p) Psi))
-          (substs (C (Partial-Children p)) (xs-of (sem (Partial-Terminal p) Psi)) (subst (v_s (Partial-ID p)) 'y (sem (Partial-Terminal p) Psi))))))
+          (substs (xs-of (sem (Partial-Terminal p) Psi)) (C (Partial-Children p)) (subst 'y (v_s (Partial-ID p)) (sem (Partial-Terminal p) Psi))))))
 
 (define (phi-n p Psi)
-  (foldr conj 'false (cons (psi-n p Psi) (map (lambda (c) (phi-n c Psi)) (Partial-Children p)))))
+  (foldr conj 'true (cons (psi-n p Psi) (map (lambda (c) (phi-n c Psi)) (Partial-Children p)))))
 
 (Partial-Children P1)
 
-(psi-n P1 Psi0)
+
 
 (define (InferSpec p Psi)
   (let ([vs (declare-vs p)]
@@ -82,7 +82,8 @@
 (define (CheckConflict P Psi Phi)
   (define (Chi n) (Partial-Terminal (Lookup-By-ID P n)))
   (let* ([Phi-P (InferSpec P Psi)]
-         [psi (SMTSolve (conj Phi-P Phi))]
+         [psi0 (SMTSolve (append Phi-P (list (list 'assert Phi))))]
+         [psi (if (list? psi0) psi0 '())]
          [k (map (lambda (phi) (list phi (Node phi) (Chi (Node phi)))) psi)]
          [k_ (map (match-lambda [(list phi N X) (list (Rename phi) (Node phi) (Chi (Node phi)))]) k)])
     k_))
@@ -188,8 +189,4 @@
 
 (declare-vs P1)
 
-(InferSpec P1 Psi0)
-
-(phi-p P1 Psi0)
-
-(CheckConflict P1 Psi0 'true)
+(CheckConflict P1 Psi0 'false)
