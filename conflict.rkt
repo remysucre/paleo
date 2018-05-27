@@ -46,15 +46,15 @@
                   (sort    . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
                   (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
 
-(define Psi0 #hash((filter . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
-                  (minimum . ((> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
-                  (maximum . ((> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
-                  (last . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
-                  (head . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
-                  (sum . ((>= (len x1) 1) (= (len y) 1)))
-                  (take . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
-                  (reverse . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
-                  (sort . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
+(define Psi0 #hash((filter . (and (< (len y) (len x1)) (= x2 x2) (>= (max x1) (max y)) (<= (min x1) (min y))))
+                  (minimum . (and (> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
+                  (maximum . (and (> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
+                  (last . (and (>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
+                  (head . (and (>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
+                  (sum . (and (>= (len x1) 1) (= (len y) 1)))
+                  (take . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
+                  (reverse . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
+                  (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
 
 (sem 'last Psi0)
 
@@ -112,15 +112,15 @@
              (cons 'L (list '(take L N) '(filter L T) '(sort L) '(reverse L)))
              (cons 'T '(geqz leqz eqz)))))
 
-(define Psi #hash((filter . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
-                  (minimum . ((> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
-                  (maximum . ((> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
-                  (last . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
-                  (head . ((>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
-                  (sum . ((>= (len x1) 1) (= (len y) 1)))
-                  (take . ((< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
-                  (reverse . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
-                  (sort . ((= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
+(define Psi #hash((filter . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
+                  (minimum . (and (> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
+                  (maximum . (and (> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
+                  (last . (and (>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
+                  (head . (and (>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
+                  (sum . (and (>= (len x1) 1) (= (len y) 1)))
+                  (take . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
+                  (reverse . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
+                  (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
   
 (define (AnalyzeConflict P gamma Psi kappa)
     (for/fold ([sphi '()]) ([clause kappa])
@@ -131,8 +131,11 @@
       (define sigma (for*/list ([node As]
                                 [prod (dict-ref rules (Partial-Non-Terminal node))]
                                 #:when (list? prod)
-                                #:when (not (SMTSolve `((assert
-                                                    (and ,@(dict-ref Psi (Production-Terminal prod))
+                                #:when (not (SMTSolve `((declare-const x1 (List Int))
+                                                        (declare-const x2 (List Int))
+                                                        (declare-const y (List Int))
+                                                        (assert
+                                                         (and ,(dict-ref Psi (Production-Terminal prod))
                                                          (not ,phi)))))))
                       (list (Partial-ID node) (Production-Terminal prod))))
       (append sphi sigma)))
