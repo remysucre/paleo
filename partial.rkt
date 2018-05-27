@@ -58,6 +58,15 @@
                                          (Partial 4 'T 'HOLE #f '())))
                                (Partial 5 'N 'HOLE #f '()))))))
 
+(define P3 (Partial 0 'N 'head #t
+                    (list
+                     (Partial 1 'L 'take #t
+                              (list
+                               (Partial 2 'L 'filter #t
+                                        (list
+                                         (Partial 3 'L 'x1 #t '())
+                                         (Partial 4 'T 'HOLE #f '())))
+                               (Partial 5 'N 'maximum #t (list (Partial 6 'L 'HOLE #f '()))))))))
 (define (print-node P)
     (printf "~s: ~s, ~s, ~s\n" (Partial-ID P) (Partial-Non-Terminal P) (Partial-Terminal P) (Partial-Filled? P)))
 

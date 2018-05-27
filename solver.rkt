@@ -7,7 +7,7 @@
 ; We assume that the solvers is in the bin folder.
 (define-runtime-path bin (build-path "bin"))
 
-(define z3 (make-parameter (build-path bin "z3")))
+(define z3 (make-parameter (build-path bin "z3.exe")))
 
 ; Invokes Z3 on the given QF_BV formula, represented as a list 
 ; of symbols (see examples.rkt). It returns #f if the formula 
@@ -18,7 +18,7 @@
     (error 'solve "could not locate z3: ~v does not exist" (z3)))
   (define-values (process out in err) 
     (subprocess #f #f #f (z3) "-smt2" "-in"))
-  (with-handlers ([exn:break? (lambda (e) 
+  (with-handlers ([exn:break? (lambda (e)
                                 (subprocess-kill process #t)
                                 (error 'solve "user break"))])
     (write-encoding encoding in)
@@ -30,7 +30,7 @@
 
 ; Writes the given encoding to the specified port.
 (define (write-encoding encoding port)
-  (fprintf port "(set-logic QF_BV)\n")
+  ;(fprintf port "(set-logic QF_BV)\n")
   (for ([expr encoding])
     (fprintf port "~a\n" expr))
   (fprintf port "(check-sat)\n")
@@ -48,8 +48,8 @@
 ; 'unsat and no core was extracted).
 (define (read-solution port)
   (match (read port)
-    [(== 'sat) 
-     (match (read port)
+    [(== 'sat) #t
+     #;(match (read port)
        [(list (== 'model) (list (== 'define-fun) const _ _ val) ...)
         (for/hash ([c const] [v val]) 
           (values c 

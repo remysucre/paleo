@@ -46,7 +46,6 @@
         (Partial id type terminal filled? '())))
   (define parsed (assign-id (parse-node P) 0))
   (define typed (type-check parsed start))
-  (print-partial typed)
   typed)
 
 (define (parse-spec terminal args out spec)
@@ -80,10 +79,8 @@
   
   (define (parse-rule e)
     (match e
-      [`(,lhs ,op ,rhs) (eprintf "Op: ~s\n" (list op (parse-expr lhs) (parse-expr rhs)))
-                        (list op (parse-expr lhs) (parse-expr rhs))]))
-  (for ([rule spec]) (parse-rule rule))
-  #f)
+      [`(,lhs ,op ,rhs) (list op (parse-expr lhs) (parse-expr rhs))]))
+  (for/list ([rule spec]) (parse-rule rule)))
  
 (define (parse file)
   (define rules (make-hash))
@@ -92,7 +89,8 @@
   (define prod-children (make-hash))
   (define spec (make-hash))
   (define start #f)
-  (define partials '())
+  (define partials (make-hash))
+  (define progs (make-hash))
   (for ([expr (in-port read file)])
     (match expr
       [`(Terminal ,N ,x ...)
@@ -107,11 +105,21 @@
          [`(,terminal ,args ,out)
           (unless (hash-has-key? prods terminal)
             (error "Spec for unknown terminal:" terminal))
-          (parse-spec terminal args out semantics)]
+          (dict-set! spec terminal (parse-spec terminal args out semantics))]
          [_ #f])]
-      [`(Partial ,P)
-       (set! partials (cons partials (parse-partial P prods prod-children start)))]))
-  (unless start (error "No terminals provided for language")))
+      [`(Partial ,name ,P)
+       (dict-set! partials name (parse-partial P prods prod-children start))]
+      [`(Synthesize ,progname [,in ,out] ,partial)
+       (unless (and (hash-has-key? partials in)
+                    (hash-has-key? partials out)
+                    (hash-has-key? partials partial))
+         (error "Undefiend partial at Synthesize:" expr))
+       (dict-set! progs progname
+                  (list (dict-ref partials in)
+                        (dict-ref partials out)
+                        (dict-ref partials partial)))]))
+  (unless start (error "No terminals provided for language"))
+  (list prods prod-children spec start partials progs))
 
 (provide (rename-out [literal-read read]
                      [literal-read-syntax read-syntax]))
@@ -124,4 +132,4 @@
   (with-syntax ([parsed (parse in)])
     (strip-context
      #'(module anything racket
-         'parsed))))
+         (define prog 'parsed)))))
