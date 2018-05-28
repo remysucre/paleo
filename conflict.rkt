@@ -95,7 +95,7 @@
 (define (CheckConflict P Psi Phi)
   (define (Chi n) (Partial-Terminal (Lookup-By-ID P n)))
   (let* ([Phi-P (InferSpec P Psi)]
-         [psi0 (SMTSolve (append Phi-P (list (list 'assert Phi))))]
+         [psi0 (SMTSolve (append Phi-P (list (list 'assert (list '! Phi ':named 'aphi)))))]
          [psi (if (list? psi0) psi0 '())]
          [k (map (lambda (phi) (list phi (Node phi) (Chi (Node phi)))) psi)]
          [k_ (map (match-lambda [(list phi N X) (list (Rename phi) (Node phi) (Chi (Node phi)))]) k)])
@@ -209,4 +209,4 @@
 
 (declare-vs P1)
 
-(CheckConflict P1 Psi0 'false)
+(CheckConflict P1 Psi0 '(> (len v2) (len v4)))
