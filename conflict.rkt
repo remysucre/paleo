@@ -94,12 +94,17 @@
 ; returns the MUC of a conflict
 (define (CheckConflict P Psi Phi)
   (define (Chi n) (Partial-Terminal (Lookup-By-ID P n)))
+  (define (phi-n-xn muc)
+    (let* ([id (string->number (substring (symbol->string muc) 1))]
+           [xn (Chi id)]
+           [ph (sem xn Psi)])
+      (list ph id xn)))
   (let* ([Phi-P (InferSpec P Psi)]
          [psi0 (SMTSolve (append Phi-P (list (list 'assert (list '! Phi ':named 'aphi)))))]
          [psi (if (list? psi0) psi0 '())]
-         [k (map (lambda (phi) (list phi (Node phi) (Chi (Node phi)))) psi)]
-         [k_ (map (match-lambda [(list phi N X) (list (Rename phi) (Node phi) (Chi (Node phi)))]) k)])
-    k_))
+         [k (map phi-n-xn (filter (lambda (x) (not (equal? x 'aphi)))psi))]
+         #;[k_ (map (match-lambda [(list phi N X) (list (Rename phi) (Node phi) (Chi (Node phi)))]) k)])
+    k))
 
 ; learn lemmas from the MUC of a conflict
 #;(define (AnalyzeConflict P gamma Psi kappa)
