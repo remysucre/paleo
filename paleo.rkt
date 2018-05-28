@@ -46,7 +46,7 @@
 ; Psi: semantics - mapping from terminals to first-order formulae
 
  ; terminals -> formulae
-(define Psi #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
+#;(define Psi #hash((last    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
                   (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
                   (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
                   (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
@@ -57,7 +57,13 @@
                   (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
 
 ; Phi: specification - user defined smt formulae
-(define Phi "Lin.len ≥ 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ k > 0 ∧ Lin.len > k") ; Look at bottom of paper
+(define Phi '(and (>= (len x1) 1)
+                  (= 1 (len y))
+                  (>= (max x1) (max y))
+                  (<= (min x1) (min y))
+                  (> (head x2) 0 )
+                  (= (len x2) 1)
+                  (> (len x1) (head x2)))) ; Look at bottom of paper
 
 ; P: partial program - AST with holes, built from S via production rules
 (define P1 '(0 N head
@@ -111,7 +117,7 @@
   ;;
   (define (wtd P Omega l ds pps)
     ; decide to fill hole H with production pr
-    (match-define (cons H pr) (Decide P gamma Phi Omega))
+    (match-define (cons H pr) (Decide P gamma Phi Omega gamma)) ; TODO one gama
     ; propagate assignment and update partial program
     (define P1 (Propagate P gamma H pr Omega)) ; TODO should also update decision history
     ; update decision history and partial program history
@@ -135,3 +141,4 @@
         [(IsConcrete P2) P2]
         [else (wtd P2 Omega1 (+ 1 l) ds2 pps2)])))
   (wtd P0 omega0 l0 ds0 pps0))
+(synth R1 Psi0 Phi)

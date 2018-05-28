@@ -55,7 +55,7 @@
       (if (> (L candidate) (L default)) candidate default)))
 
 ;Test
-;(eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
+(eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
 
 ; TODO long
 (define (Implied P H p omega rules)
