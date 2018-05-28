@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (all-defined-out))
-(require "partial.rkt" "solver.rkt")
+(require "partial.rkt" "SATsolver.rkt")
 
 ; TODO long
 #;(define (Decide P gamma phi Omega)
@@ -24,6 +24,7 @@
            (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
               (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
 
+  (print (append pi conflicts))
   (define solution (solve (append pi conflicts)))
   solution)
 
@@ -55,7 +56,9 @@
       (if (> (L candidate) (L default)) candidate default)))
 
 ;Test
-(eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
+; (eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
+
+(Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R)
 
 ; TODO long
 (define (Implied P H p omega rules)

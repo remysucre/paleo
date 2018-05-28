@@ -1,5 +1,5 @@
 #lang racket
-(require rackunit "conflict.rkt" "decide.rkt")
+(require rackunit "conflict.rkt" "decide.rkt" "partial.rkt")
 
 ; procedure Synthesize(G, Ψ, Φ)
 ;   P ← Root(S)
@@ -106,7 +106,7 @@
 (define (synth gamma Psi Phi)
   ;; initialize variables
   ;;
-  (define P0 (Root S)) ; inital partial program
+  (define P0 (Partial 5 'N 'HOLE #f '())) ; inital partial program
   (define omega0 '())  ; initial knowledge base
   (define ds0 '())     ; initial decision history
   (define pps0 (list P0)) ; initial partial program history
@@ -119,7 +119,7 @@
     ; decide to fill hole H with production pr
     (match-define (cons H pr) (Decide P gamma Phi Omega gamma)) ; TODO one gama
     ; propagate assignment and update partial program
-    (define P1 (Propagate P gamma H pr Omega)) ; TODO should also update decision history
+    (define P1 (Propagate P gamma H pr Omega gamma)) ; TODO should also update decision history
     ; update decision history and partial program history
     (define ds1 (cons (cons l H) ds)) ; TODO should update with propagate restul NOTE H should be int
     (define pps1 (cons (cons l P1) pps))
