@@ -34,7 +34,7 @@
   (for ([expr encoding])
     (fprintf port "~a\n" expr))
   (fprintf port "(check-sat)\n")
-  (fprintf port "(get-model)\n")
+  (fprintf port "(get-unsat-core)\n")
   (flush-output port))
 
 ; Reads the SMT solution from the given input port.
@@ -58,5 +58,13 @@
                     [(== 'false) #f]
                     [(? number?) (finitize v)])))]
        [other (error 'solution "expected model, given ~a" other)])]
-    [(== 'unsat) (read port) #f] 
+    [(== 'unsat) (match (read port)
+       [p p;(list (== 'model) (list (== 'define-fun) const _ _ val) ...)
+        #;(for/hash ([c const] [v val]) 
+          (values c 
+                  (match v
+                    [(== 'true) #t]
+                    [(== 'false) #f]
+                    [(? number?) (finitize v)])))]
+       [other (error 'solution "expected model, given ~a" other)])] 
     [other (error 'smt-solution "unrecognized solver output: ~a" other)]))

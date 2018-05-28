@@ -66,7 +66,7 @@
 
 (xs-of '(Lout \. len = Lin \. len > 1 ∧ Lin \. max = Lout \. max ∧ Lin \. min = Lout \. min ∧ Lin \. first = Lout \. last ∧ Lin \. last = Lout \. first))
 
-(define (phi-p p Psi) (list 'assert (subst 'y (v_s (Partial-ID p)) (phi-n p Psi))))
+(define (phi-p p Psi) (subst 'y (v_s (Partial-ID p)) (phi-n p Psi)))
 
 (define (psi-n p Psi)
   (if (not (Partial-Filled? p))
@@ -75,8 +75,11 @@
           'true ; TODO careful (subst (v_s (Partial-ID p)) 'y (sem (Partial-Terminal p) Psi))
           (substs (xs-of (sem (Partial-Terminal p) Psi)) (C (Partial-Children p)) (subst 'y (v_s (Partial-ID p)) (sem (Partial-Terminal p) Psi))))))
 
-(define (phi-n p Psi)
+#;(define (phi-n p Psi)
   (foldr conj 'true (cons (psi-n p Psi) (map (lambda (c) (phi-n c Psi)) (Partial-Children p)))))
+
+(define (phi-n p Psi)
+  (for/list ([n p]) (list 'assert (list '! (psi-n n Psi) ':named (string->symbol (string-append "a" (number->string (Partial-ID n)))))))) ; (assert (! false :named a6) )
 
 (Partial-Children P1)
 
@@ -84,7 +87,7 @@
 
 (define (InferSpec p Psi)
   (let ([vs (declare-vs p)]
-        [phi-ns (phi-p p Psi)]) (append vs (list phi-ns))))
+        [phi-ns (phi-p p Psi)]) (append vs phi-ns)))
 
 (InferSpec P1 Psi0)
 
