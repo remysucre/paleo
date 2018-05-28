@@ -137,8 +137,9 @@
                                          (backtrack OmegaK ds pps)
                                          (list P1 ds1 pps1))])
       (cond
-        [(Unsat Omega1) #f]
+        [(Unsat P2 Omega1 gamma) #f]
         [(IsConcrete P2) P2]
         [else (wtd P2 Omega1 (+ 1 l) ds2 pps2)])))
-  (wtd P0 omega0 l0 ds0 pps0))
+  (print-partial (wtd P0 omega0 l0 ds0 pps0)))
 (synth R1 Psi0 Phi)
+

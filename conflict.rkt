@@ -91,8 +91,14 @@
 
 (InferSpec P1 Psi0)
 
+(define (declare-xs phi)
+  (cons '(declare-const y (List Int))
+        (map (lambda (x) (list 'declare-const x '(List Int)))
+               (filter (lambda (c) (string-prefix? (symbol->string c) "x")) (set->list (list->set (filter symbol? (flatten phi))))))))
+
 ; returns the MUC of a conflict
 (define (CheckConflict P Psi Phi)
+  (print 'checkc)
   (define (Chi n) (Partial-Terminal (Lookup-By-ID P n)))
   (define (phi-n-xn muc)
     (let* ([id (string->number (substring (symbol->string muc) 1))]
@@ -100,7 +106,8 @@
            [ph (sem xn Psi)])
       (list ph id xn)))
   (let* ([Phi-P (InferSpec P Psi)]
-         [psi0 (SMTSolve (append Phi-P (list (list 'assert (list '! Phi ':named 'aphi)))))]
+         [encoding (append (declare-xs Phi) Phi-P (list (list 'assert (list '! Phi ':named 'aphi))))]
+         [psi0 (SMTSolve encoding)]
          [psi (if (list? psi0) psi0 '())]
          [k (map phi-n-xn (filter (lambda (x) (not (equal? x 'aphi)))psi))]
          #;[k_ (map (match-lambda [(list phi N X) (list (Rename phi) (Node phi) (Chi (Node phi)))]) k)])
@@ -131,6 +138,7 @@
                   (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
   
 (define (AnalyzeConflict P gamma Psi kappa)
+  (print 'analyzec)
     (for/fold ([sphi '()]) ([clause kappa])
       (match-define (list phi node prod) clause)
       (define As (Partial-Children (Lookup-By-ID P node)))
