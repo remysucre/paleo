@@ -107,7 +107,7 @@
 (define (synth gamma Psi Phi)
   ;; initialize variables
   ;;
-  (define P0 (Partial 5 'N 'HOLE #f '())) ; inital partial program
+  (define P0 (Partial 1 'N 'HOLE #f '())) ; inital partial program
   (define omega0 '())  ; initial knowledge base
   (define ds0 '())     ; initial decision history
   (define pps0 (list (cons 0 P0))) ; initial partial program history

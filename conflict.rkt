@@ -91,7 +91,7 @@
          [psi (if (list? psi0) psi0 '())]
          [k (map phi-n-xn (filter (lambda (x) (not (equal? x 'aphi)))psi))]
          #;[k_ (map (match-lambda [(list phi N X) (list (Rename phi) (Node phi) (Chi (Node phi)))]) k)])
-    k))
+    (print k)k))
 
 ; learn lemmas from the MUC of a conflict
 #;(define (AnalyzeConflict P gamma Psi kappa)
@@ -134,10 +134,11 @@
                                                          (and ,(dict-ref Psi (Production-Terminal prod))
                                                          (not ,phi)))))))
                       (list (Partial-ID node) (Production-Terminal prod))))
+      (print (append sphi sigma))
       (append sphi sigma)))
 
 ;Test
-#;(AnalyzeConflict P1 R1 Psi '(((= (len y) 1) 1 maximum)))
+;(AnalyzeConflict P1 R1 Psi '(((= (len y) 1) 1 maximum)))
 
 (define (Aof x) '()) ; 
 (define (Children x) '()) ; TODO
