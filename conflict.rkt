@@ -16,6 +16,7 @@
 ; returns the MUC of a conflict
 (define (CheckConflict P Psi Phi)
   (print 'checkcstart)
+  (print-partial P)
   (define (phi-n-xn muc)
     (let* ([id (string->number (substring (symbol->string muc) 1))]
            [xn (Partial-Terminal (Lookup-By-ID P id))]
@@ -100,11 +101,21 @@
 
 ; EXAMPLES
 
+;N → x_i |-3|-2|-1|0|1|2|3
+;  | last(L) | head(L) | access(L, N )
+;  | minimum(L) | maximum(L) | sum(L) | count(L, T , N )
+;L → x_i | take(L,N) | drop(L,N)
+;  | sort(L) | reverse(L) | filter(L, T , N )
+;  | map(L,F,N) | zipWith(L,L,Z) | scanl1(L,Z)
+;T → geq | leq | eq | neq | modeq | modneq
+;F → mul | div | plus | minus | pow
+;Z → plus | minus | mul | min | max
+
 ; grammar
 (define R1
   (make-immutable-hash
-   (list (cons 'N (append `,(range 0 11) '(x1 x2 x3 x4 x5) '((last L) (head L) (sum L) (maximum L) (minimum L))))
-         (cons 'L (list '(take L N) '(filter L T) '(sort L) '(reverse L)))
+   (list (cons 'N (append `,(range 0 5) '(x1 x2) '((last L) (head L) (sum L) (maximum L) (minimum L))))
+         (cons 'L (append '(x1 x2) (list '(take L N) '(filter L T) '(sort L) '(reverse L))))
          (cons 'T '(geqz leqz eqz)))))
 
 ; semantics
