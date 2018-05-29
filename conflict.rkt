@@ -24,27 +24,10 @@
 ;  [(list id A 'HOLE)])
 
 (define (v_s id) (string->symbol (string-append "v" (number->string id))))
-(define (sem p Psi) (dict-ref Psi p))
-
-#;(define Psi0 #hash((last    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
-                   (head    . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
-                   (sum     . (and (= x1 x1) (= y y)));"Lin.len ≥ 1 ∧ Lout .len = 1")
-                   (maximum . (and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
-                   (minimum . (and (= x1 x1) (= y y)));"Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
-                   (take    . (and (= x1 x1) (and (= y y) (= x2 x2))));"Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
-                   (filter  . (and (= x1 x1) (and (= y y) (= x2 x2))));"Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
-                   (sort    . (and (= x1 x1) (= y y)));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
-                   (reverse . (and (= x1 x1) (= y y)))));"Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
-
-#;p(define Psi1 #hash((last   . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.last ∧ Lout.last = Lin.last")
-                  (head    . "Lin.len ≥ 1 ∧ Lout .len = 1 ∧ Lin.max ≥ Lout.max ∧ Lin.min ≤ Lout.min ∧ Lout.first = Lin.first ∧ Lout.last = Lin.first")
-                  (sum     . "Lin.len ≥ 1 ∧ Lout .len = 1")
-                  (maximum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max = Lout.max ∧ Lout.min ≥ Lin.min")
-                  (minimum . "Lin.len > 1 ∧ Lout.len = 1 ∧ Lin.max ≥ Lout.max ∧ Lout.min = Lin.min")
-                  (take    . "Lout.len < Lin.len Lin.max ≥ Lout.max Lin.min ≤ Lout.min k > 0 ∧ Lin.len > k Lin.first = Lout.first")
-                  (filter  . "Lout.len < Lout.len Lout.max ≤ Lin.max Lout.min ≥ Lin.min")
-                  (sort    . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout .min")
-                  (reverse . "Lout.len = Lin.len > 1 ∧ Lin.max = Lout.max ∧ Lin.min = Lout.min ∧ Lin.first = Lout.last ∧ Lin.last = Lout.first")))
+(define (sem p Psi)
+  (if (dict-has-key? Psi p)
+      (dict-ref Psi p)
+          (list '= 'y p)))
 
 (define Psi0 #hash((filter . (and (< (len y) (len x1)) (= x2 x2) (>= (max x1) (max y)) (<= (min x1) (min y))))
                   (minimum . (and (> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
@@ -54,42 +37,39 @@
                   (sum . (and (>= (len x1) 1) (= (len y) 1)))
                   (take . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
                   (reverse . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
-                  (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
+                  (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))
+                  (0 . (= y 0))))
 
-(sem 'last Psi0)
+;(sem 'last Psi0)
 
 (define (C cs) (map (lambda (n) (v_s (Partial-ID n))) cs))
 
-
-
 (define (xs-of s) (set-intersect (flatten s) '(x1 x2))) ; do this properly
 
-(xs-of '(Lout \. len = Lin \. len > 1 ∧ Lin \. max = Lout \. max ∧ Lin \. min = Lout \. min ∧ Lin \. first = Lout \. last ∧ Lin \. last = Lout \. first))
+;(xs-of '(Lout \. len = Lin \. len > 1 ∧ Lin \. max = Lout \. max ∧ Lin \. min = Lout \. min ∧ Lin \. first = Lout \. last ∧ Lin \. last = Lout \. first))
 
-(define (phi-p p Psi) (subst 'y (v_s (Partial-ID p)) (phi-n p Psi)))
+(define (phi-p p Psi) (subst (v_s (Partial-ID p)) 'y (phi-n p Psi)))
 
 (define (psi-n p Psi)
   (if (not (Partial-Filled? p))
       'true
       (if (null? (Partial-Children p))
-          'true ; TODO careful (subst (v_s (Partial-ID p)) 'y (sem (Partial-Terminal p) Psi))
+          (if (number? (Partial-Terminal p))
+              (list '= (v_s (Partial-ID p)) (list 'insert (Partial-Terminal p) 'nil))
+              (list '= (v_s (Partial-ID p)) (Partial-Terminal p)))
+          
           (substs (xs-of (sem (Partial-Terminal p) Psi)) (C (Partial-Children p)) (subst 'y (v_s (Partial-ID p)) (sem (Partial-Terminal p) Psi))))))
-
-#;(define (phi-n p Psi)
-  (foldr conj 'true (cons (psi-n p Psi) (map (lambda (c) (phi-n c Psi)) (Partial-Children p)))))
 
 (define (phi-n p Psi)
   (for/list ([n p]) (list 'assert (list '! (psi-n n Psi) ':named (string->symbol (string-append "a" (number->string (Partial-ID n)))))))) ; (assert (! false :named a6) )
 
-(Partial-Children P1)
-
-
+;(Partial-Children P1)
 
 (define (InferSpec p Psi)
   (let ([vs (declare-vs p)]
         [phi-ns (phi-p p Psi)]) (append vs phi-ns)))
 
-(InferSpec P1 Psi0)
+;(InferSpec P1 Psi0)
 
 (define (declare-xs phi)
   (cons '(declare-const y (List Int))
@@ -98,7 +78,7 @@
 
 ; returns the MUC of a conflict
 (define (CheckConflict P Psi Phi)
-  (print 'checkc)
+  ;(print 'checkc)
   (define (Chi n) (Partial-Terminal (Lookup-By-ID P n)))
   (define (phi-n-xn muc)
     (let* ([id (string->number (substring (symbol->string muc) 1))]
@@ -138,7 +118,7 @@
                   (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
   
 (define (AnalyzeConflict P gamma Psi kappa)
-  (print 'analyzec)
+  ;(print 'analyzec)
     (for/fold ([sphi '()]) ([clause kappa])
       (match-define (list phi node prod) clause)
       (define As (Partial-Children (Lookup-By-ID P node)))
@@ -180,17 +160,20 @@
 
 (define (d2l d) (dict-map d (lambda (x y) (cons x y))))
 
-(define (revert l xs) (make-immutable-hash (filter (lambda (x) (< (car x) l)) (d2l xs))))
+;(define (revert l xs) (make-immutable-hash (filter (lambda (x) (< (car x) l)) (d2l xs))))
 
-(revert 3 (list (cons 1 2) (cons 2 4) (cons 4 5)))
+(define (revert l xs) (filter (lambda (x) (<= (car x) l)) (d2l xs)))
+
+;(revert 3 (list (cons 1 2) (cons 2 4) (cons 4 5)))
 
 ; takes in a conflict, the decision history and the partial progam history
 ; returns the partial program at the second highest decision level in the conflict
 (define (backtrack omega ds pps)
-  (let* ([snd-l (cadadr (sort-with omega ds))]
+  (print pps)
+  (let* ([snd-l (if (< (length omega) 2) 0 (cadadr (sort-with omega ds)))]
         [pp (dict-ref pps snd-l)]
         [pps_ (revert snd-l pps)]
-        [ds_ (revert snd-l ds)])
+        [ds_ (if (= 0 snd-l) '() (revert snd-l ds))])
     (list pp pps_ ds_)))
 
 ; backtrack finds the second highest decision level in the MUC omega according to ds
@@ -209,6 +192,7 @@
 ; sort the conflict with decision level
 
 (define (sort-with omega ds)
+  (print ds)
   (define (less x y) (< (dict-ref ds (cadr x)) (dict-ref ds (cadr y))))
   (sort omega less))
 
@@ -218,8 +202,8 @@
                 ((leq (max y) (max x1)) 3 'filter)
                 ((= y x1) 7 'x1)))
 
-(backtrack om-eg ds-eg pps-eg)
+;(backtrack om-eg ds-eg pps-eg)
 
-(declare-vs P1)
+;(declare-vs P1)
 
-(CheckConflict P1 Psi0 '(> (len v2) (len v4)))
+;(CheckConflict P1 Psi0 '(> (len x1) (len y)))

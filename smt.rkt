@@ -34,7 +34,7 @@
 (define (conj x y) (list 'and x y))
 
 (define (SMTSolve f)
-  (let ([ans (solve (append (list produce-unsat len3 min3 max3 first3 last3) f))]) (print f)(print ans) ans))
+  (let ([ans (solve (append (list produce-unsat len3 min3 max3 first3 last3) f))]) #;(print f) #;(print ans) ans))
 
 (define (subst x y zs)
   (define (f z) (if (list? z) (subst x y z) (if (equal? z x) y z)))
@@ -44,7 +44,7 @@
   (let ((xys (map cons xs ys)))
     (foldr (lambda (xy z) (subst (car xy) (cdr xy) z)) z xys)))
 
-(substs '(x y z) '(1 2 3) '(z (y x z) (y x (z))))
+;(substs '(x y z) '(1 2 3) '(z (y x z) (y x (z))))
 
 (define (Node f) (if (member 'y f) 0 (get-vn f)))
 
@@ -54,17 +54,17 @@
   (let ((vs (filter (lambda (x) (string-prefix? (symbol->string x) "v")) f)))
     (argmax (lambda (x) x) (map get-i vs))))
 
-(get-vn '(v3 x v5))
+;(get-vn '(v3 x v5))
 
 
 (define (make-x i) (string->symbol (string-append "x" (number->string i))))
 
 (define (deep-map f xs) (map (lambda (x) (if (list? x) (deep-map f x) (f x))) xs))
 
-(deep-map (lambda (x) (+ x 1)) (list 1 1 (list 1 (list 1 1) 1) 1 1 (list (list 1 1) 1)))
+;(deep-map (lambda (x) (+ x 1)) (list 1 1 (list 1 (list 1 1) 1) 1 1 (list (list 1 1) 1)))
 
 (define (Rename p)
   (let ((vs (sort (filter (lambda (x) (string-prefix? (symbol->string x) "v")) (flatten p)) #:key get-i <)))
     (define (rn x) (if (member x vs) (if (= (index-of vs x) 0) 'y (make-x (index-of vs x))) x))
     (deep-map rn p)))
-(Rename '(leq (max v1) (max v3)))
+;(Rename '(leq (max v1) (max v3)))

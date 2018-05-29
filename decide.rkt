@@ -23,8 +23,6 @@
         `,(-
            (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
               (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
-
-  (print (append pi conflicts))
   (define solution (solve (append pi conflicts)))
   solution)
 
@@ -58,7 +56,7 @@
 ;Test
 ; (eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
 
-(Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R)
+; (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R)
 
 ; TODO long
 (define (Implied P H p omega rules)
