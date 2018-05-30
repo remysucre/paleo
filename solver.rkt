@@ -7,7 +7,7 @@
 ; We assume that the solvers is in the bin folder.
 (define-runtime-path bin (build-path "bin"))
 
-(define z3 (make-parameter (build-path bin "z3")))
+(define z3 (make-parameter (build-path bin "z3.exe")))
 
 ; Invokes Z3 on the given QF_BV formula, represented as a list 
 ; of symbols (see examples.rkt). It returns #f if the formula 
@@ -23,7 +23,7 @@
                                 (error 'solve "user break"))])
     (write-encoding encoding in)
     ; uncomment this to see what is being sent to the solver
-    (write-encoding encoding (current-output-port))
+    ;(write-encoding encoding (current-output-port))
     (define sol (read-solution out))
     (subprocess-kill process #t)
     sol))

@@ -29,8 +29,9 @@
 (define (L x)
   (cond
     [(not x) 0]
-    [(match (cdr x) [(list `(,n ,t ...)) #f] [else #t]) 2]
-    [else 1]))
+    ;[(match (cdr x) [(list `(sum ,t ...)) #t] [else #f]) 3]
+    [(match (cdr x) [(list `(,n ,t ...)) #t] [else #f]) 1]
+    [else 2]))
 
 (define R (make-immutable-hash
            (list (cons 'N (append `,(range 0 11) '(x1 x2 x3 x4 x5) '((last L) (head L) (sum L) (maximum L) (minimum L))))

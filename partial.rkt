@@ -40,9 +40,8 @@
     (if (= (Partial-ID P) H)
         (Partial (Partial-ID P) (Partial-Non-Terminal P) (Production-Terminal p) #t
                  (for/list ([new (Production-Children p)])
-                   (begin0
-                     (Partial (+ next 1) new 'HOLE #f '())
-                     (set! next (+ next 1)))))
+                   (set! next (+ next 1))
+                   (Partial next new 'HOLE #f '())))
         (Partial (Partial-ID P) (Partial-Non-Terminal P) (Partial-Terminal P) (Partial-Filled? P)
                  (for/list ([child (Partial-Children P)])
                    (Search child)))))

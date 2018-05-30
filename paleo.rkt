@@ -46,13 +46,13 @@
   ;; partial program history
   ;;
   (define (wtd P Omega l ds pps)
-    (print-partial P)
-    (print (list Omega l ds pps))
+    ;(print-partial P)
+    ;(print (list Omega l ds pps))
     ; decide to fill hole H with production pr
     (match-define (cons H pr) (Decide P gamma Phi Omega gamma)) ; TODO one gama
-    (print 'decide)
-    (print H)
-    (print 'decide)
+    ;(print 'decide)
+    ;(print H)
+    ;(print 'decide)
     ; propagate assignment and update partial program
     (define P1 (Propagate P gamma H pr Omega gamma)) ; TODO should also update decision history
     ; update decision history and partial program history
@@ -71,14 +71,17 @@
                  [(list P2 pps2 ds2 l2) (if (not (null? kappa))
                                          (backtrack OmegaK ds1 pps1)
                                          (list P1 pps1 ds1 (+ l 1)))])
-      (print 'OmegaK)
-      (print OmegaK)
-      (print Omega1)
-      (print-partial P2)
+      ;(print 'OmegaK)
+      ;(print OmegaK)
+      ;(print Omega1)
+      ;(print-partial P2)
       (cond
         [(Unsat P2 Omega1 gamma) #f]
         [(null? (Holes P2)) P2]
-        [else (wtd P2 Omega1 l2 ds2 pps2)])))    
+        [else (wtd P2 Omega1 l2 ds2 pps2)])))
+  (newline)
+  (newline)
+  (newline)
   (print-res (wtd P0 omega0 l0 ds0 pps0)))
 
-(synth R1 Psi0 '(and (= x2 (insert 1 (insert 2 nil))) (= x1 (insert 6 (insert 8 nil))) (= (insert 6 nil) y)))
+(synth R1 Psi '(and (= x2 (insert 1 (insert 2 nil))) (= x1 (insert 6 (insert 8 nil))) (= (insert 6 nil) y)))

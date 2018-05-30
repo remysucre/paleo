@@ -33,6 +33,34 @@
 
 (define (conj x y) (list 'and x y))
 
+(define (eqlen len list)
+  `(and
+    ,@(for/list ([x (in-range 0 len)])
+        `(not (=
+               nil
+               ,(for/fold ([default list]) ([y (in-range 0 x)])
+                          `(tail ,default)))))
+    (=
+     ,(for/fold ([default list]) ([y [in-range 0 (+ len 1)]])
+                `(tail ,default))
+    nil)))
+
+(define (leqlen len list)
+  `(or
+    ,@(for/list ([x (in-range 0 (+ len 1))])
+        `(=
+          nil
+          ,(for/fold ([default list]) ([y (in-range 0 x)])
+             `(tail ,default))))))
+
+(define (geqlen len list)
+  `(and
+    ,@(for/list ([x (in-range 0 len)])
+        `(not (=
+               nil
+               ,(for/fold ([default list]) ([y (in-range 0 x)])
+                          `(tail ,default)))))))
+    
 (define (SMTSolve f)
   (let ([ans (solve (append (list produce-unsat len3 min3 max3 first3 last3) f))]) #;(print f) #;(print ans) ans))
 

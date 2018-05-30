@@ -15,8 +15,8 @@
 
 ; returns the MUC of a conflict
 (define (CheckConflict P Psi Phi)
-  (print 'checkcstart)
-  (print-partial P)
+  ;(print 'checkcstart)
+  ;(print-partial P)
   (define (phi-n-xn muc)
     (let* ([id (string->number (substring (symbol->string muc) 1))]
            [xn (Partial-Terminal (Lookup-By-ID P id))]
@@ -25,17 +25,20 @@
   (define (declare-xs phi)
     (cons '(declare-const y (List Int))
           (map (lambda (x) (list 'declare-const x '(List Int)))
-               (filter (lambda (c) (string-prefix? (symbol->string c) "x")) (set->list (list->set (filter symbol? (flatten phi))))))))
+               (filter (lambda (c) (string-prefix? (symbol->string c) "x"))
+                       (set->list (list->set (filter symbol? (flatten phi))))))))
   (let* ([Phi-P (InferSpec P Psi)]
          [encoding (append (declare-xs Phi) Phi-P (list (list 'assert (list '! Phi ':named 'aphi))))]
          [psi0 (SMTSolve encoding)]
          [psi (if (list? psi0) psi0 '())]
          [k (map phi-n-xn (filter (lambda (x) (not (equal? x 'aphi)))psi))])
-    (print k) k))
+    #;(print k) k))
 
 (define (InferSpec p Psi)
   (define (declare-vs p)
+    ;(print-partial p)
     (for/list ([n p])
+      ;(eprintf "~s ~s\n" (Partial-ID n) (v_s (Partial-ID n)))
         (list 'declare-const (v_s (Partial-ID n)) '(List Int))))
   (define (phi-p p Psi)
     (subst (v_s (Partial-ID p)) 'y (phi-n p Psi)))
@@ -60,8 +63,8 @@
         [phi-ns (phi-p p Psi)]) (append vs phi-ns)))
 
 (define (sem p Psi)
-  (print p)
-  (print (number? p))
+  #;(print p)
+  #;(print (number? p))
   (dict-ref Psi p
             (if (number? p)
                 (list '= 'y (list 'insert p 'nil))
@@ -79,25 +82,28 @@
 
 ; learn lemmas from the MUC of a conflict
 (define (AnalyzeConflict P gamma Psi kappa)
-  (print 'begin)
-  (print-partial P)
-  (print (list gamma Psi kappa))
-  (print 'end)
-    (for/fold ([sphi '()]) ([clause kappa])
-      (match-define (list phi node p0) clause)
-      (define As (Partial-Children (Lookup-By-ID P node)))
-      (define rules gamma)
-      #;(define sigma (for*/list ([A (cons (Lookup-By-ID P node) As)]
-                                [prod (dict-ref rules (Partial-Non-Terminal A))]
-                                #:when (list? prod)
-                                #:when (list? (SMTSolve `((declare-const x1 (List Int))
-                                                          (declare-const x2 (List Int))
-                                                          (declare-const y (List Int))
-                                                          (assert
-                                                           (and ,(sem (Production-Terminal prod) Psi)
-                                                                (not ,phi)))))))
-                      (list (Partial-ID A) (Production-Terminal prod))))
-      (append sphi (list (list (cons node p0))))))
+  #;(print 'begin)
+  ;(print-partial P)
+  #;(print (list gamma Psi kappa))
+  #;(print 'end)
+  (for/fold ([sphi '()]) ([clause kappa])
+    (match-define (list phi node p0) clause)
+    (define As (cons (Lookup-By-ID P node) (Partial-Children (Lookup-By-ID P node))))
+    (define rules gamma)
+    (define sigma (for*/list ([A As]
+                              [prod (dict-ref rules (Partial-Non-Terminal A))]
+                              #:when (begin (eprintf "\n\n\t~s\t~s\n\n" (Partial-ID A) prod) #t)
+                              #:when (list? (SMTSolve `(,@(if (= (length (Production-Children prod)) 2)
+                                                             '((declare-const x1 (List Int))
+                                                               (declare-const x2 (List Int)))
+                                                             '((declare-const x1 (List Int))))
+                                                        (declare-const y (List Int))
+                                                        (assert (<= (len y) (len x1)))
+                                                        (assert
+                                                         (and ,(sem (Production-Terminal prod) Psi)
+                                                              (not ,phi)))))))
+                    (list (cons (Partial-ID A) (Production-Terminal prod)))))
+    (append sphi sigma)))
 
 ; EXAMPLES
 
@@ -114,8 +120,8 @@
 ; grammar
 (define R1
   (make-immutable-hash
-   (list (cons 'N (append `,(range 0 5) '(x1 x2) '((last L) (head L) (sum L) (maximum L) (minimum L))))
-         (cons 'L (append '(x1 x2) (list '(take L N) '(filter L T) '(sort L) '(reverse L))))
+   (list (cons 'N (append `,(range 0 5) '(x1) '((last L) (head L) (sum L) (maximum L) (minimum L))))
+         (cons 'L (append '(x1) (list '(take L N) '(filter L T) '(sort L) '(reverse L))))
          (cons 'T '(geqz leqz eqz)))))
 
 ; semantics
@@ -129,14 +135,15 @@
                   (reverse . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
                   (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
 
-(define Psi #hash((filter . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
-                  (minimum . (and (> (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (= (min x1) (min y))))
-                  (maximum . (and (> (len x1) 1) (= (len y) 1) (= (max x1) (max y)) (<= (min x1) (min y))))
-                  (last . (and (>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
-                  (head . (and (>= (len x1) 1) (= (len y) 1) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
-                  (sum . (and (>= (len x1) 1) (= (len y) 1)))
-                  (take . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
-                  (reverse . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
-                  (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
+(define Psi (make-immutable-hash
+             `((filter . (and (< (len y) (len x1)) (>= (max x1) (max y)) (<= (min x1) (min y))))
+               (minimum . (and ,(geqlen 2 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (= (min x1) (min y))))
+               (maximum . (and ,(geqlen 2 'x1) ,(eqlen 1 'y) (= (max x1) (max y)) (<= (min x1) (min y))))
+               (last . (and ,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
+               (head . (and ,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
+               (sum . (and ,(geqlen 1 'x1) ,(eqlen 1 'y)))
+               (take . (and (< (len y) (len x1)) ,(eqlen 1 'x2) (= (len y) (head x2)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
+               (reverse . (and (= (len y) (len x1)) ,(geqlen 2 'x1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
+               (sort . (and (= (len y) (len x1)) ,(geqlen 2 'x1) (= (max x1) (max y)) (= (min x1) (min y)))))))
 
 (sem 0 Psi)
