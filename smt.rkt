@@ -41,7 +41,7 @@
                ,(for/fold ([default list]) ([y (in-range 0 x)])
                           `(tail ,default)))))
     (=
-     ,(for/fold ([default list]) ([y [in-range 0 (+ len 1)]])
+     ,(for/fold ([default list]) ([y (in-range 0 len)])
                 `(tail ,default))
     nil)))
 
@@ -63,6 +63,9 @@
     
 (define (SMTSolve f)
   (let ([ans (solve (append (list produce-unsat len3 min3 max3 first3 last3) f))]) #;(print f) #;(print ans) ans))
+
+(define (SATSolve f)
+  (let ([ans (solve (append (list produce-unsat) f))]) ans))
 
 (define (subst x y zs)
   (define (f z) (if (list? z) (subst x y z) (if (equal? z x) y z)))

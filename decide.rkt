@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (all-defined-out))
-(require "partial.rkt" "SATsolver.rkt")
+(require "partial.rkt" "smt.rkt")
 
 ; TODO long
 #;(define (Decide P gamma phi Omega)
@@ -9,22 +9,38 @@
 
 ; TODO probably pretty short enumeration over the tree
 (define (Consistent? P omega rules)
-  (define prod->unique (Make-prod->unique rules))
-  (define num-prods (hash-count prod->unique))
-
+  (define referenced (make-hash))
+  (define (reference name)
+    (unless (hash-has-key? referenced name)
+      (dict-set! referenced name #t)))
+  
   (define pi
-    (for/list ([node P] #:when (Partial-Filled? node))
-      `(,(+ (Node->Unique num-prods node)
-           (Prod->Unique prod->unique (Partial-Terminal node))))))
+    (if (Hole? P)
+        `(assert true)
+        `(assert (and
+                  ,@(for/list ([node P] #:when (Partial-Filled? node))
+                      (reference (ToZ3Name node (Partial-Terminal node)))
+                      `,(ToZ3Name node (Partial-Terminal node)))))))
 
   (define conflicts
-    (for/list ([clause omega])
-      (for/list ([literal clause])
-        `,(-
-           (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
-              (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
-  (define solution (solve (append pi conflicts)))
-  solution)
+    (if (null? omega)
+        '(assert true)
+        `(assert (and
+                  ,@(for/list ([kappa omega])
+                      `(or
+                        ,@(for/list ([clause kappa])
+                            `(and
+                              ,@(for/list ([literal clause])
+                                  (define prod (cdr literal))
+                                  (reference (Prod->ToZ3Name (car literal) prod))
+                                  `(not ,(Prod->ToZ3Name (car literal) prod)))))))))))
+
+  (define decs
+    (for/list ([name (in-dict-keys referenced)])
+      `(declare-const ,name Bool)))
+
+  (define solution (SATSolve (append decs (list pi conflicts))))
+  (not (list? solution)))
 
 (define (L x)
   (cond
@@ -61,35 +77,52 @@
 
 ; TODO long
 (define (Implied P H p omega rules)
-  (define prod->unique (Make-prod->unique rules))
-  (define num-prods (hash-count prod->unique))
-
+  (define referenced (make-hash))
+  (define (reference name)
+    (unless (hash-has-key? referenced name)
+      (dict-set! referenced name #t)))
+  
   (define pi
-    (for/list ([node P] #:when (Partial-Filled? node))
-      `(,(+ (Node->Unique num-prods node)
-           (Prod->Unique prod->unique (Partial-Terminal node))))))
+    (if (Hole? P)
+        `(assert true)
+        `(assert (and
+                  ,@(for/list ([node P] #:when (Partial-Filled? node))
+                      (reference (ToZ3Name node (Partial-Terminal node)))
+                      `,(ToZ3Name node (Partial-Terminal node)))))))
 
   (define conflicts
-    (for/list ([clause omega])
-      (for/list ([literal clause])
-        `,(-
-           (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
-              (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
+    (if (null? omega)
+        '(assert true)
+        `(assert (and
+                  ,@(for/list ([kappa omega])
+                      `(or
+                        ,@(for/list ([clause kappa])
+                            `(and
+                              ,@(for/list ([literal clause])
+                                  (define prod (cdr literal))
+                                  (reference (Prod->ToZ3Name (car literal) prod))
+                                  `(not ,(Prod->ToZ3Name (car literal) prod)))))))))))
 
   (define h-node (Lookup-By-ID P H))
   
   (define possible
-    (for/list ([(prod-non prod-terms) (in-dict rules)]
-                #:when (eq? (Partial-Non-Terminal h-node) prod-non))
-      (for/list ([prod-term prod-terms])
-        `,(+ (Node->Unique num-prods h-node)
-             (Prod->Unique prod->unique (Production-Terminal prod-term))))))
+    `(assert (and
+      ,@(for/list ([(prod-non prod-terms) (in-dict rules)]
+                   #:when (eq? (Partial-Non-Terminal h-node) prod-non))
+          `(or
+            ,@(for/list ([prod-term prod-terms])
+                (reference (ToZ3Name h-node (Production-Terminal prod-term)))
+                `,(ToZ3Name h-node (Production-Terminal prod-term))))))))
 
-  (define invert (list (- (+ (Node->Unique num-prods h-node)
-                             (Prod->Unique prod->unique (Production-Terminal p))))))
+  (reference (ToZ3Name h-node (Production-Terminal p)))
+  (define invert `(assert (not ,(ToZ3Name h-node (Production-Terminal p)))))
 
-  (define solution (solve (cons invert (append pi conflicts possible))))
-  (not solution))
+  (define decs
+    (for/list ([name (in-dict-keys referenced)])
+      `(declare-const ,name Bool)))
+
+  (define solution (SATSolve (append decs (cons invert (append (list pi conflicts possible))))))
+  (list? solution))
 
 (define (Propagate P gamma H p Omega rules)
   (define P1 (Fill P H p))
@@ -111,30 +144,53 @@
 
 ; TODO long
 (define (Unsat P omega rules)
-  (define prod->unique (Make-prod->unique rules))
-  (define num-prods (hash-count prod->unique))
-
+  (define referenced (make-hash))
+  (define (reference name)
+    (unless (hash-has-key? referenced name)
+      (dict-set! referenced name #t)))
+  
   (define pi
-    (for/list ([node P] #:when (Partial-Filled? node))
-      `(,(+ (Node->Unique num-prods node)
-           (Prod->Unique prod->unique (Partial-Terminal node))))))
+    (if (Hole? P)
+        `(assert true)
+        `(assert (and
+                  ,@(for/list ([node P] #:when (Partial-Filled? node))
+                      (reference (ToZ3Name node (Partial-Terminal node)))
+                      `,(ToZ3Name node (Partial-Terminal node)))))))
 
   (define conflicts
-    (for/list ([clause omega])
-      (for/list ([literal clause])
-        `,(-
-           (+ (Node->Unique num-prods (Lookup-By-ID P (car literal)))
-              (Prod->Unique prod->unique (Production-Terminal (cdr literal))))))))
-  
-  (define possible
-    (for*/list ([node P] #:when (Hole? node) [(prod-non prod-terms) (in-dict rules)]
-                #:when (eq? (Partial-Non-Terminal node) prod-non))
-      (for/list ([prod-term prod-terms])
-        `,(+ (Node->Unique num-prods node)
-             (Prod->Unique prod->unique (Production-Terminal prod-term))))))
+    (if (null? omega)
+        '(assert true)
+        `(assert (and
+                  ,@(for/list ([kappa omega])
+                      `(or
+                        ,@(for/list ([clause kappa])
+                            `(and
+                              ,@(for/list ([literal clause])
+                                  (define prod (cdr literal))
+                                  (reference (Prod->ToZ3Name (car literal) prod))
+                                  `(not ,(Prod->ToZ3Name (car literal) prod)))))))))))
 
-  (define solution (solve (append pi conflicts possible)))
-  (not solution))
+  (define possible
+    (if (null? (Holes P))
+        `(assert true)
+        `(assert (and
+                  ,@(for*/list ([node P]
+                                #:when (Hole? node)
+                                [(prod-non prod-terms) (in-dict rules)]
+                                #:when (eq? (Partial-Non-Terminal node) prod-non))
+                      `(or
+                        ,@(for/list ([prod-term prod-terms])
+                            (reference (ToZ3Name node (Production-Terminal prod-term)))
+                            `,(ToZ3Name node (Production-Terminal prod-term)))))))))
+  
+  (define decs
+    (for/list ([name (in-dict-keys referenced)])
+      `(declare-const ,name Bool)))
+
+  (define solution (SATSolve (append decs (list pi possible conflicts))))
+  (list? solution))
 
 ; Test
-;(printf "~s/n" (Unsat P1 (list (list (cons 4 'geqz)) (list (cons 4 'leqz)) (list (cons 4 'eqz))) R))
+;(printf "~s\n" (Unsat P1 (list (list (cons 4 'geqz) (cons 4 'leqz) (cons 4 'eqz))) R))
+;(printf "~s\n" (Unsat P1 (list (list (cons 4 'geqz) (cons 4 'leqz))) R))
+;(printf "~s\n" (Unsat P1 (list (list (cons 4 'geqz) (cons 4 'leqz))) R))

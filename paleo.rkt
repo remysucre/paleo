@@ -10,9 +10,9 @@
 ; takes in a conflict, the decision history and the partial progam history
 ; returns the partial program at the second highest decision level in the conflict
 (define (backtrack omega ds pps)
-  (print omega)
-  (print ds)
-  (print pps)
+  ;(print omega)
+  ;(print ds)
+  ;(print pps)
   (define (revert l xs) (filter (lambda (x) (<= (car x) l)) xs))
   (define (less x y) (< (dict-ref ds (caar x)) (dict-ref ds (caar y))))
   (let* ([snd-l (if (< (length omega) 2) 0 (dict-ref ds (caaadr (sort omega less))))]
@@ -36,7 +36,8 @@
 ;     else if IsConcrete(P) then
 ;        return P
 (define (synth gamma Psi Phi)
-  (define P0 (Partial 1 'N 'HOLE #f '())) ; inital partial program
+  (define P0 (Partial 1 'N 'HOLE #f '()))
+  ;(define P0 (Partial 1 'N 'head #t (list (Partial 2 'L 'HOLE #f '())))) ; inital partial program
   (define omega0 '())  ; initial knowledge base
   (define ds0 '())     ; initial decision history
   (define pps0 (list (cons 0 P0))) ; initial partial program history
@@ -55,6 +56,7 @@
     ;(print 'decide)
     ; propagate assignment and update partial program
     (define P1 (Propagate P gamma H pr Omega gamma)) ; TODO should also update decision history
+    (print-partial P1)
     ; update decision history and partial program history
     (define ds1 (cons (cons H l) ds)) ; TODO should update with propagate restul NOTE H should be int
     (define pps1 (cons (cons (+ l 1) P1) pps))
@@ -65,12 +67,14 @@
                  [OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
                  ; update knowledge base
                  [Omega1 (if (not (null? kappa))
-                             (append Omega OmegaK)
+                             (append OmegaK Omega)
                              Omega)]
                  ; update partial program and decision history
                  [(list P2 pps2 ds2 l2) (if (not (null? kappa))
                                          (backtrack OmegaK ds1 pps1)
                                          (list P1 pps1 ds1 (+ l 1)))])
+
+      (eprintf "Omega: ~s\n" Omega1)
       ;(print 'OmegaK)
       ;(print OmegaK)
       ;(print Omega1)
@@ -82,6 +86,10 @@
   (newline)
   (newline)
   (newline)
-  (print-res (wtd P0 omega0 l0 ds0 pps0)))
+  (define res (wtd P0 omega0 l0 ds0 pps0))
+  (print-res res)
+  (newline)
+  (newline)
+  (eprintf "~s\n" res))
 
-(synth R1 Psi '(and (= x2 (insert 1 (insert 2 nil))) (= x1 (insert 6 (insert 8 nil))) (= (insert 6 nil) y)))
+(synth R1 Psi '(and (= x1 (insert 6 (insert 8 nil))) (= (insert 6 nil) y)))

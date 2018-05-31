@@ -80,16 +80,6 @@
   (print-tree P 1)
   (newline))
 
-(define (Make-prod->unique rules)
-  (define i 0)
-  (define prods->unique
-    (for*/hash ([(non-term terms) rules] [term terms])
-      (begin0
-        (values (list `,(Production-Terminal term)) i)
-        (set! i (+ i 1)))))
-  prods->unique)
+(define (ToZ3Name node prod) (string->symbol (format "node~s-~s" (Partial-ID node) prod)))
 
-(define (Prod->Unique prod->unique prod)
-  (dict-ref prod->unique (list prod)))
-
-(define (Node->Unique num-prods node) (* (Partial-ID node) num-prods))
+(define (Prod->ToZ3Name node prod) (string->symbol (format "node~s-~s" node prod)))
