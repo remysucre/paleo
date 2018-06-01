@@ -77,7 +77,7 @@
                                          (backtrack OmegaK ds1 pps1)
                                          (list P1 pps1 ds1 (+ l 1)))])
 
-      (when *debug* (eprintf "Omega: ~s\n\n" Omega1))
+      (when *debug* (printo Omega1))
       ;(print 'OmegaK)
       ;(print OmegaK)
       ;(print Omega1)
@@ -95,3 +95,7 @@
           (* 0.001 (round (- end start)))
           (if *learn?* "on" "off"))
   (print-res res))
+
+(define (printo o) 
+  (define (pretty o) (cons 'and (map (lambda (c) (cons 'or (map (lambda (d) (cons 'and d)) c))) o)))
+  (eprintf "Omega: ~s\n\n" (pretty o)))
