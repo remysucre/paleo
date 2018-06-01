@@ -14,24 +14,42 @@
 ;  return k'
 
 ; returns the MUC of a conflict
-(define (CheckConflict P Psi Phi)
+(define (CheckConflict P Psi Phi in out)
   ;(print 'checkcstart)
   ;(print-partial P)
   (define (phi-n-xn muc)
-    (let* ([id (string->number (substring (symbol->string muc) 1))]
-           [xn (Partial-Terminal (Lookup-By-ID P id))]
-           [ph (sem xn Psi)])
-      (list ph id xn)))
+    (let* ([id (map string->number (string-split (substring (symbol->string muc) 1) "p"))]
+           [xn (Partial-Terminal (Lookup-By-ID P (car id)))]
+           [ph (if (not (null? (Partial-Children (Lookup-By-ID P (car id)))))
+                   (list-ref (sem xn Psi) (- (second id) 1))
+                   (sem xn Psi))])
+      (list ph (car id) xn)))
   (define (declare-xs phi)
     (cons '(declare-const y (List Int))
           (map (lambda (x) (list 'declare-const x '(List Int)))
                (filter (lambda (c) (string-prefix? (symbol->string c) "x"))
                        (set->list (list->set (filter symbol? (flatten phi))))))))
   (let* ([Phi-P (InferSpec P Psi)]
+         [concrete (if (null? (Holes P))
+                       (for/list ([clause (Assert P in)])
+                         `(assert ,clause))
+                   `((assert true)))]
          [encoding (append (declare-xs Phi) Phi-P (list (list 'assert (list '! Phi ':named 'aphi))))]
-         [psi0 (SMTSolve encoding)]
+         [concrete-invalid?
+          (if (and (null? (Holes P)))
+              (if (equal? (Execute-Node P in) out)
+                  #f
+                  (let* ([id (Partial-Size P)]
+                         [node (Lookup-By-ID P id)]
+                         [xn (Partial-Terminal node)]
+                         [ph (if (not (null? (Partial-Children node)))
+                                 (list-ref (sem xn Psi) (- id 1))
+                                 (sem xn Psi))])
+                    (list (list ph id xn))))
+              #f)]
+         [psi0 (if concrete-invalid? concrete-invalid? (SMTSolve encoding))]
          [psi (if (list? psi0) psi0 '())]
-         [k (map phi-n-xn (filter (lambda (x) (not (equal? x 'aphi)))psi))])
+         [k (if concrete-invalid? concrete-invalid? (map phi-n-xn (filter (lambda (x) (not (equal? x 'aphi))) psi)))])
     #;(print k) k))
 
 (define (InferSpec p Psi)
@@ -43,16 +61,20 @@
   (define (phi-p p Psi)
     (subst (v_s (Partial-ID p)) 'y (phi-n p Psi)))
   (define (phi-n p Psi)
-    (for/list ([n p])
-      (list 'assert (list '! (psi-n n Psi) ':named
-                          (string->symbol (string-append "a" (number->string (Partial-ID n))))))))
+    (for/list ([n p] #:when (Partial-Filled? n))
+      (define rules (psi-n n Psi))
+      (define prod 0)
+      (for/list ([rule rules])
+        (set! prod (+ prod 1))
+        (list 'assert (list '! rule ':named
+                            (string->symbol (string-append "a" (number->string (Partial-ID n)) "p" (number->string prod))))))))
   (define (psi-n p Psi)
     (if (not (Partial-Filled? p))
         'true
         (if (null? (Partial-Children p))
             (if (number? (Partial-Terminal p))
-                (list '= (v_s (Partial-ID p)) (list 'insert (Partial-Terminal p) 'nil))
-                (list '= (v_s (Partial-ID p)) (Partial-Terminal p)))
+                (list (list '= (v_s (Partial-ID p)) (list 'insert (Partial-Terminal p) 'nil)))
+                (list (list '= (v_s (Partial-ID p)) (Partial-Terminal p))))
             (substs (xs-of (sem (Partial-Terminal p) Psi))
                     (C (Partial-Children p))
                     (subst 'y (v_s (Partial-ID p)) (sem (Partial-Terminal p) Psi))))))
@@ -62,7 +84,7 @@
   (define (C cs) (map (lambda (n) (v_s (Partial-ID n))) cs))
   (define (v_s id) (string->symbol (string-append "v" (number->string id))))
   (let ([vs (declare-vs p)]
-        [phi-ns (phi-p p Psi)]) (append vs phi-ns)))
+        [phi-ns (apply append (phi-p p Psi))]) (append vs phi-ns)))
 
 (define (sem p Psi)
   #;(print p)
@@ -83,26 +105,31 @@
 ; (((= y 0) 1 0)))
 
 ; learn lemmas from the MUC of a conflict
-(define (AnalyzeConflict P gamma Psi kappa)
+(define (AnalyzeConflict P gamma Psi kappa in *learn?*)
+  ;(eprintf "Kappa: ~s\n\n" kappa)
   (define (xs n)
     (cons '(declare-const x1 (List Int))
           (for/list ([x (in-range 1 n)])
             `(declare-const ,(string->symbol (format "x~s" (+ x 1))) (List Int)))))
-  
   (list
    (for/list ([clause kappa])
      (match-define (list phi node p0) clause)
      (define rules gamma)
      (define A (Lookup-By-ID P node))
      (define sigma
-       (for*/list ([prod (dict-ref rules (Partial-Non-Terminal A))]
-                   #:when (list? (SMTSolve `(,@(xs (max (length (Production-Children prod)) (length (Partial-Children A))))
-                                             (declare-const y (List Int))
-                                             (assert (<= (len y) (len x1)))
-                                             (assert
-                                              (and ,(sem (Production-Terminal prod) Psi)
-                                                   (not ,phi)))))))
-         (cons (Partial-ID A) (Production-Terminal prod))))
+       (if *learn?*
+           (for*/list ([prod (dict-ref rules (Partial-Non-Terminal A))]
+                       #:when (list? (SMTSolve `(,@(xs (max (length (Production-Children prod)) (length (Partial-Children A))))
+                                                 (declare-const y (List Int))
+                                                 (assert (= x1 ,(List->Z3 in)))
+                                                 (assert
+                                                  (and ,@(if (list? prod)
+                                                             (sem (Production-Terminal prod) Psi)
+                                                             `(,(sem (Production-Terminal prod) Psi)))
+                                                       (not ,phi)))))))
+             (cons (Partial-ID A) (Production-Terminal prod)))
+           (list (cons node p0))))
+     ;(eprintf "Sigma: ~s, nots: ~s\n" sigma (list (cons node p0)))
      sigma)))
   
 ; EXAMPLES
@@ -120,7 +147,7 @@
 ; grammar
 (define R1
   (make-immutable-hash
-   (list (cons 'N (append `,(range 0 5) '(x1) '((last L) (head L) #;(sum L) (maximum L) (minimum L))))
+   (list (cons 'N (append `,(range 0 5) '(x1) '((last L) (head L) (sum L) (maximum L) (minimum L))))
          (cons 'L (append '(x1) (list '(take L N) '(sort L) '(reverse L)))))))
 
 ; semantics
@@ -135,13 +162,69 @@
                   (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
 
 (define Psi (make-immutable-hash
-             `((minimum . (and ,(geqlen 2 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (= (min x1) (min y))))
-               (maximum . (and ,(geqlen 2 'x1) ,(eqlen 1 'y) (= (max x1) (max y)) (<= (min x1) (min y))))
-               (last . (and ,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
-               (head . (and ,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
-               ;(sum . (and ,(geqlen 1 'x1) ,(eqlen 1 'y)))
-               (take . (and (< (len y) (len x1)) ,(eqlen 1 'x2) (= (len y) (head x2)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
-               (reverse . (and (= (len y) (len x1)) ,(geqlen 2 'x1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
-               (sort . (and (= (len y) (len x1)) ,(geqlen 2 'x1) (= (max x1) (max y)) (= (min x1) (min y)))))))
+             `((minimum . (,(geqlen 2 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (= (min x1) (min y))))
+               (maximum . (,(geqlen 2 'x1) ,(eqlen 1 'y) (= (max x1) (max y)) (<= (min x1) (min y))))
+               (last . (,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
+               (head . (,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
+               (sum . (,(geqlen 1 'x1) ,(eqlen 1 'y) (> (head y) (max x1))))
+               (take . ((< (len y) (len x1)) ,(eqlen 1 'x2) (= (len y) (head x2)) (>= (max x1) (max y)) (<= (min x1) (min y)) (> (head x2) 0) (> (len x1) (head x2)) (= (first x1) (first y))))
+               (reverse . ((= (len y) (len x1)) ,(geqlen 2 'x1) (= (max x1) (max y)) (= (min x1) (min y)) (= (first x1) (last y)) (= (last x1) (first y))))
+               (sort . ((= (len y) (len x1)) ,(geqlen 2 'x1) (= (max x1) (max y)) (= (min x1) (min y)))))))
 
-(sem 0 Psi)
+(define (List->Z3 xs)
+  (define l (if (number? xs) (list xs) xs))
+  (for/fold ([nil 'nil]) ([x (reverse l)])
+    `(insert ,x ,nil)))
+
+(define (Maximum xs)
+  (list (argmax identity xs)))
+
+(define (Minimum xs)
+  (list (argmax (lambda (x) (- x)) xs)))
+
+(define (Last xs)
+  (list (last xs)))
+
+(define (Head xs)
+  (list (car xs)))
+
+(define (Reverse xs)
+  (reverse xs))
+
+(define (Sort xs)
+  (sort xs <))
+
+(define (Sum xs)
+  (list (foldl + 0 xs)))
+
+(define (Take xs n)
+  (if (or (> (car n) (length xs)) (= 0 (car n)))
+      xs
+      (take xs (car n))))
+
+(define (get-fun prod)
+  (match prod
+    ['take Take]
+    ['sort Sort]
+    ['last Last]
+    ['head Head]
+    ['maximum Maximum]
+    ['minimum Minimum]
+    ['sum Sum]
+    ['reverse Reverse]
+    [(? number?) (lambda () (list prod))]))
+
+(define (Execute-Node P in)
+  (if (or (not (null? (Holes P))) (eq? 'x1 (Partial-Terminal P)))
+      in
+      (apply (get-fun (Partial-Terminal P))
+             (for/list ([child (Partial-Children P)]) (Execute-Node child in)))))
+
+(define (Assert P in)
+  (define (v_s id) (string->symbol (string-append "v" (number->string id))))
+  (if (null? (Holes P))
+      (for/list ([node P])
+        `(= , (v_s (Partial-ID node)) ,(List->Z3 (Execute-Node node in))))
+      '()))
+
+;(sem 0 Psi)

@@ -31,6 +31,10 @@
   '(define-fun-rec last ((xs (List Int))) Int 
      (ite (= nil (tail xs)) (head xs) (last (tail xs)))))
 
+#;(define take
+  '(define-fun-rec last ((xs (List Int)) (n (List Int))) (List Int) 
+     (ite (= nil (tail xs)) (head xs) (last (tail xs)))))
+
 (define (conj x y) (list 'and x y))
 
 (define (eqlen len list)

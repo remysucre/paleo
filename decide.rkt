@@ -1,7 +1,7 @@
 #lang racket
 
 (provide (all-defined-out))
-(require "partial.rkt" "smt.rkt")
+(require "partial.rkt" "smt.rkt" "conflict.rkt" racket/random)
 
 ; TODO long
 #;(define (Decide P gamma phi Omega)
@@ -42,12 +42,51 @@
   (define solution (SATSolve (append decs (list pi conflicts))))
   (not (list? solution)))
 
-(define (L x)
-  (cond
-    [(not x) 0]
-    ;[(match (cdr x) [(list `(sum ,t ...)) #t] [else #f]) 3]
-    [(match (cdr x) [(list `(,n ,t ...)) #t] [else #f]) 1]
-    [else 2]))
+(define (L in out x)
+  0
+  #;(cond
+    [(= (length in) 1)
+     (random 1 5)]
+    [(= (length in) (length out))
+     (if (= (car in) (car out))
+         (match x
+           ['sort (random 1 10)]
+           ['reverse (random 1 10)]
+           ['x1 (random 5 15)]
+           ['take (random 1 5)]
+           [(? number?) (random 1 5)]
+           [else 0])
+         (match x
+           ['sort (random 1 5)]
+           ['reverse (random 1 5)]
+           ['x1 (random 1 10)]
+           ['take (random 1 10)]
+           [(? number?) (random 1 10)]
+           [else 0]))]
+    [(= 1 (length out))
+     (match x
+       ['sort (if (= (car in) (car out)) (random 1 5) (random 1 10))]
+       ['reverse (if (= (car in) (car out)) (random 1 5) (random 1 10))]
+       ['minimum (if (equal? (Minimum in) (Minimum out)) (random 5 15) (random 1 3))]
+       ['maximum (if (equal? (Maximum in) (Maximum out)) (random 5 15) (random 1 3))]
+       ['head (if (= (car in) (car out)) (random 1 10) (random 1 5))]
+       ['last (if (= (car in) (car out)) (random 1 5) (random 1 10))]
+       ['sum (if (> (car (Maximum out)) (car (Maximum in))) (random 3 17) (random 1 5))]
+       ['x1 (random 3 10)]
+       ['take (random 1 10)]
+       [1 (random 1 10)]
+       [(? number?) (random 1 7)]
+       [else 0])]
+    [(< 1 (length out) (length in))
+     (match x
+       ['sort (if (= (car in) (car out)) (random 1 5) (random 10))]
+       ['reverse (if (= (car in) (car out)) (random 1 5) (random 10))]
+       ['x1 (random 3 13)]
+       ['take (random 3 13)]
+       [1 (random 1 5)]
+       [(? number?) (random 3 13)]
+       [else 0])]
+    [else 1]))
 
 (define R (make-immutable-hash
            (list (cons 'N (append `,(range 0 11) '(x1 x2 x3 x4 x5) '((last L) (head L) (sum L) (maximum L) (minimum L))))
@@ -55,20 +94,18 @@
              (cons 'T '(geqz leqz eqz)))))
 
 ; TODO make sure this matches data structure
-(define (Decide P gamma phi Omega rules)
-    (define V (for/list ([hole (Holes P)])
-                (define hole-non (Partial-Non-Terminal (Lookup-By-ID P hole)))
-                (for*/list ([(prod-non prod-terms) (in-dict rules)]
-                           #:when (eq? hole-non prod-non)
-                           [prod-term prod-terms])
-                  (cons hole prod-term))))
-    (define V1 (for/list ([possibilities V])
-                 (filter (lambda (x)
-                           (Consistent? (Fill P (car x) (cdr x)) Omega rules))
-                         possibilities)))
-    (for*/fold ([default #f]) ([possibilities V1] [candidate possibilities])
-      (match-define (cons H p) candidate)
-      (if (> (L candidate) (L default)) candidate default)))
+(define (Decide P gamma in out Omega rules)
+  (define V (for/list ([hole (Holes P)])
+              (define hole-non (Partial-Non-Terminal (Lookup-By-ID P hole)))
+              (for*/list ([(prod-non prod-terms) (in-dict rules)]
+                          #:when (eq? hole-non prod-non)
+                          [prod-term prod-terms])
+                (cons hole prod-term))))
+  (define V1 (for/list ([possibilities V])
+               (filter (lambda (x)
+                         (Consistent? (Fill P (car x) (cdr x)) Omega rules))
+                       possibilities)))
+ (argmax (lambda (x) (L in out x)) (apply append V1)))
 
 ;Test
 ; (eprintf "~s\n" (Decide P1 #f #f (list (list (cons 4 'geqz) (cons 2 'filter)) (list (cons 4 'leqz) (cons 2 'filter))) R))
@@ -126,17 +163,17 @@
 
 (define (Propagate P gamma H p Omega rules)
   (define P1 (Fill P H p))
-  (define S (for*/list ([hole (Holes P)]
+  (define S (for*/list ([hole (Holes P1)]
                         #:when (number? hole)
                         [(prod-non prod-terms) (in-dict rules)]
-                        #:when (eq? (Partial-Non-Terminal (Lookup-By-ID P hole)) prod-non)
+                        #:when (eq? (Partial-Non-Terminal (Lookup-By-ID P1 hole)) prod-non)
                         [prod-term prod-terms])
               (list hole prod-term)))
   (for/fold ([default P1]) ([x S])
     (match-define (list hole prod) x)
-    (define hole-non (Partial-Non-Terminal (Lookup-By-ID P hole)))
-    (if (Implied P hole prod Omega rules)
-        (Propagate P1 gamma hole prod Omega rules)
+    (define hole-non (Partial-Non-Terminal (Lookup-By-ID P1 hole)))
+    (if (Implied P1 hole prod Omega rules)
+       (Propagate P1 gamma hole prod Omega rules)
         default)))
 
 ; Test

@@ -1,5 +1,6 @@
 #lang racket
 (require rackunit "conflict.rkt" "decide.rkt" "partial.rkt")
+(provide (all-defined-out))
 
 ; BACKTRACK
 ; 
@@ -35,36 +36,38 @@
 ;        return ⊥
 ;     else if IsConcrete(P) then
 ;        return P
-(define (synth gamma Psi Phi)
+(define (synth gamma Psi in out *debug* *learn?*)
   (define P0 (Partial 1 'N 'HOLE #f '()))
   ;(define P0 (Partial 1 'N 'head #t (list (Partial 2 'L 'HOLE #f '())))) ; inital partial program
   (define omega0 '())  ; initial knowledge base
   (define ds0 '())     ; initial decision history
   (define pps0 (list (cons 0 P0))) ; initial partial program history
   (define l0 0)        ; initial decision level
-  (define (print-res r) (if (Partial? r) (print-partial r) (print r)))
+  (define (print-res r) (if (Partial? r) (print-partial r) (begin (print r) (newline))))
   ;; wtd takes partial prog, knowledge base, decision history, 
   ;; partial program history
   ;;
+  (define Phi `(and (= x1 ,(List->Z3 in)) (= y ,(List->Z3 out))))
   (define (wtd P Omega l ds pps)
     ;(print-partial P)
     ;(print (list Omega l ds pps))
     ; decide to fill hole H with production pr
-    (match-define (cons H pr) (Decide P gamma Phi Omega gamma)) ; TODO one gama
+    ;(print-partial P)
+    (match-define (cons H pr) (Decide P gamma in out Omega gamma)) ; TODO one gama
     ;(print 'decide)
     ;(print H)
     ;(print 'decide)
     ; propagate assignment and update partial program
     (define P1 (Propagate P gamma H pr Omega gamma)) ; TODO should also update decision history
-    (print-partial P1)
+    (when *debug* (print-partial P1))
     ; update decision history and partial program history
     (define ds1 (cons (cons H l) ds)) ; TODO should update with propagate restul NOTE H should be int
     (define pps1 (cons (cons (+ l 1) P1) pps))
     ; check for conflict
-    (define kappa (CheckConflict P1 Psi Phi))
+    (define kappa (CheckConflict P1 Psi Phi in out))
     ; backtrack if there is conflict
     (match-let* (; analyze conflict and return MUC
-                 [OmegaK (AnalyzeConflict P1 gamma Psi kappa)]
+                 [OmegaK (AnalyzeConflict P1 gamma Psi kappa in *learn?*)]
                  ; update knowledge base
                  [Omega1 (if (not (null? kappa))
                              (append OmegaK Omega)
@@ -74,7 +77,7 @@
                                          (backtrack OmegaK ds1 pps1)
                                          (list P1 pps1 ds1 (+ l 1)))])
 
-      (eprintf "Omega: ~s\n" Omega1)
+      (when *debug* (eprintf "Omega: ~s\n\n" Omega1))
       ;(print 'OmegaK)
       ;(print OmegaK)
       ;(print Omega1)
@@ -83,13 +86,12 @@
         [(Unsat P2 Omega1 gamma) #f]
         [(null? (Holes P2)) P2]
         [else (wtd P2 Omega1 l2 ds2 pps2)])))
-  (newline)
-  (newline)
-  (newline)
+  (define start (current-inexact-milliseconds))
   (define res (wtd P0 omega0 l0 ds0 pps0))
-  (print-res res)
-  (newline)
-  (newline)
-  (eprintf "~s\n" res))
-
-(synth R1 Psi '(and (= x1 (insert 6 (insert 8 nil))) (= (insert 6 nil) y)))
+  (define end (current-inexact-milliseconds))
+  (printf "\nInput: ~s\nOutput: ~s\nTime: ~ss\nLearning was ~a\nResult:\n"
+          in
+          out
+          (* 0.001 (round (- end start)))
+          (if *learn?* "on" "off"))
+  (print-res res))

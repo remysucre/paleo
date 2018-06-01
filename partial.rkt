@@ -57,6 +57,13 @@
                                          (Partial 4 'T 'HOLE #f '())))
                                (Partial 5 'N 'HOLE #f '()))))))
 
+(define P2 (Partial 1 'N 'head #t
+                    (list
+                     (Partial 2 'L 'take #t
+                              (list
+                               (Partial 3 'L 'x1 #t '())
+                               (Partial 4 'N 4 #t '()))))))
+
 (define P3 (Partial 0 'N 'head #t
                     (list
                      (Partial 1 'L 'take #t
@@ -77,8 +84,7 @@
     (print-node P)
     (for ([child (Partial-Children P)])
       (print-tree child (+ level 1))))
-  (print-tree P 1)
-  (newline))
+  (print-tree P 1))
 
 (define (ToZ3Name node prod) (string->symbol (format "node~s-~s" (Partial-ID node) prod)))
 
