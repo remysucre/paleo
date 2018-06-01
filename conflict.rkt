@@ -162,8 +162,8 @@
                   (sort . (and (= (len y) (len x1)) (> (len x1) 1) (= (max x1) (max y)) (= (min x1) (min y))))))
 
 (define Psi (make-immutable-hash
-             `((minimum . (,(geqlen 2 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (= (min x1) (min y))))
-               (maximum . (,(geqlen 2 'x1) ,(eqlen 1 'y) (= (max x1) (max y)) (<= (min x1) (min y))))
+             `((minimum . (,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (= (min x1) (min y))))
+               (maximum . (,(geqlen 1 'x1) ,(eqlen 1 'y) (= (max x1) (max y)) (<= (min x1) (min y))))
                (last . (,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (last x1)) (= (last y) (last x1))))
                (head . (,(geqlen 1 'x1) ,(eqlen 1 'y) (>= (max x1) (max y)) (<= (min x1) (min y)) (= (first y) (first x1)) (= (last y) (first x1))))
                (sum . (,(geqlen 1 'x1) ,(eqlen 1 'y) (> (head y) (max x1))))
